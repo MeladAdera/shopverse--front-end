@@ -1,29 +1,20 @@
-// components/ui/Galliry.tsx
+// src/components/ui/Galliry.tsx
 import React from 'react';
-
-// تعريف واجهة المنتج
-interface Product {
-  name: string;
-  category: string;
-  image: string;
-  price: string;
-  originalPrice?: string;
-  discount?: string;
-  rating: number;
-  ratingStars: string;
-}
+import type { Product } from '@/types';
 
 // تعريف Props للمكونات
 interface ProductCardProps {
   product: Product;
+  StarRating?: React.ComponentType<{ rating: number }>;
 }
 
 interface GalliryProps {
   titleSvg: React.ReactNode;  // أي عنصر React (مثل SVG)
   products?: Product[];        // اختياري، قيمة افتراضية []
+  StarRating?: React.ComponentType<{ rating: number }>; // مكون النجوم الاختياري
 }
 
-function ProductCard({ product }: ProductCardProps) {
+function ProductCard({ product, StarRating }: ProductCardProps) {
   return (
     <div className="group cursor-pointer">
       <div className="relative overflow-hidden rounded-lg bg-gray-100">
@@ -31,6 +22,7 @@ function ProductCard({ product }: ProductCardProps) {
           src={product.image} 
           alt={product.name}
           className="w-full h-48 md:h-80 object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
         />
         {product.discount && (
           <div className="absolute top-2 right-2 md:top-3 md:right-3 bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-bold">
@@ -41,13 +33,21 @@ function ProductCard({ product }: ProductCardProps) {
       
       <div className="mt-3 md:mt-4 space-y-1 md:space-y-2">
         <p className="text-xs md:text-sm text-gray-500">{product.category}</p>
-        <h3 className="font-semibold text-sm md:text-base text-gray-800">{product.name}</h3>
+        <h3 className="font-semibold text-sm md:text-base text-gray-800 line-clamp-2">{product.name}</h3>
         
+        {/* استخدام مكون النجوم إذا تم تمريره */}
         <div className="flex items-center gap-1">
-          <div className="flex text-yellow-400 text-sm md:text-base">
-            {product.ratingStars}
-          </div>
-          <span className="text-xs md:text-sm text-gray-500 ml-1">({product.rating})</span>
+          {StarRating ? (
+            <StarRating rating={product.rating} />
+          ) : (
+            <div className="flex items-center">
+              <div className="flex text-yellow-400 text-sm md:text-base">
+                {'★'.repeat(Math.floor(product.rating))}
+                {'☆'.repeat(5 - Math.floor(product.rating))}
+              </div>
+              <span className="text-xs md:text-sm text-gray-500 ml-1">({product.rating})</span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
@@ -63,7 +63,8 @@ function ProductCard({ product }: ProductCardProps) {
 
 function Galliry({ 
   titleSvg, 
-  products = [] 
+  products = [],
+  StarRating 
 }: GalliryProps) {
   return (
     <section className="px-4 md:px-8 py-8 bg-white">
@@ -76,12 +77,12 @@ function Galliry({
 
       {/* Products Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
-        {products.map((product, index) => (
+        {products.map((product) => (
           <div 
-            key={index} 
-            className={index >= 2 ? 'hidden sm:block group cursor-pointer' : 'group cursor-pointer'}
+            key={product.id} 
+            className="group cursor-pointer"
           >
-            <ProductCard product={product} />
+            <ProductCard product={product} StarRating={StarRating} />
           </div>
         ))}
       </div>

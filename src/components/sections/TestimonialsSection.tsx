@@ -1,7 +1,7 @@
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { testimonialsSvg } from '@/components/svg/titleSvgs';
-import type { StarRatingProps } from '@/types';
+import type { StarRatingProps } from '@/types/';
 
 interface Testimonial {
   id: number;

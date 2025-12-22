@@ -29,6 +29,7 @@ export interface ApiResponse<T> {
 }
 
 export interface ProductsResponse {
+  data: any;
   products: Product[];
   pagination: Pagination;
 }

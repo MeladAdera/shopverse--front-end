@@ -1,44 +1,54 @@
 // src/services/product.service.ts
 import { api, getImageUrl } from '@/lib/api-client';
-import { ProductsResponse, Product } from '@/types/product.types';
+import type { ProductsResponse, Product } from '@/types/product';
 
 export const productService = {
-  // الحصول على منتجات مع فلترة
-  getProducts: async (params?: {
-    category_id?: number;
-    search?: string;
-    page?: number;
-    limit?: number;
-    sort?: 'newest' | 'price_asc' | 'price_desc' | 'popular';
-  }): Promise<Product[]> => {
+    getProductsByCategory: async (categoryId: number): Promise<Product[]> => {
+  const products = await productService.getProducts({
+    category_id: categoryId
+  });
+  return products;
+},
+  getProducts: async (params?: any): Promise<Product[]> => {
     const response = await api.get<ProductsResponse>('/products', { params });
     return response.data.data.products;
   },
 
-  // الحصول على New Arrivals
-  getNewArrivals: async (limit: number = 4): Promise<Product[]> => {
+  getNewArrivals: async (limit: number = 4): Promise<any[]> => {
     const products = await productService.getProducts({
       sort: 'newest',
       limit
     });
     
-    // معالجة الصور
     return products.map(product => ({
-      ...product,
-      image_urls: product.image_urls.map(getImageUrl)
+      id: product.id,
+      name: product.name,
+      category: product.category_name,
+      image: product.image_urls?.[0] ? getImageUrl(product.image_urls[0]) : '/placeholder.jpg',
+      price: `$${product.price}`,
+      rating: product.average_rating || 4.5,
+      ratingStars: '★'.repeat(Math.round(product.average_rating || 4.5)) + 
+                  '☆'.repeat(5 - Math.round(product.average_rating || 4.5))
     }));
   },
 
-  // الحصول على Top Selling
-  getTopSelling: async (limit: number = 4): Promise<Product[]> => {
+  getTopSelling: async (limit: number = 4): Promise<any[]> => {
     const products = await productService.getProducts({
-      sort: 'popular', // أو 'top-selling' - نحتاج اختبار
+      sort: 'popular',
       limit
     });
     
     return products.map(product => ({
-      ...product,
-      image_urls: product.image_urls.map(getImageUrl)
+      id: product.id,
+      name: product.name,
+      category: product.category_name,
+      image: product.image_urls?.[0] ? getImageUrl(product.image_urls[0]) : '/placeholder.jpg',
+      price: `$${product.price}`,
+      rating: product.average_rating || 4.5,
+      ratingStars: '★'.repeat(Math.round(product.average_rating || 4.5)) + 
+                  '☆'.repeat(5 - Math.round(product.average_rating || 4.5))
     }));
+    
+    
   }
 };

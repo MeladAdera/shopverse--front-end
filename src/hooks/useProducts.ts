@@ -22,3 +22,10 @@ export const useTopSelling = (limit: number = 4) => {
     queryFn: () => productService.getTopSelling(limit),
   });
 };
+export const useCategoryProducts = (categoryId: number) => {
+  return useQuery({
+    queryKey: ['products', 'category', categoryId],
+    queryFn: () => productService.getProductsByCategory(categoryId),
+    enabled: !!categoryId,
+  });
+}

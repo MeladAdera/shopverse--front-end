@@ -10,9 +10,15 @@ export const api = axios.create({
   },
 });
 
-// دالة مساعدة لتحويل مسار الصورة
-export const getImageUrl = (path: string): string => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${import.meta.env.VITE_BASE_URL}${path}`;
-};
+// دالة لتحويل مسار الصورة
+export const getImageUrl = (imagePath: string): string => {
+  if (!imagePath) return '/placeholder.jpg';
+  if (imagePath.startsWith('http')) return imagePath;
+  
+  // إذا كان المسار يبدأ بـ /uploads
+  if (imagePath.startsWith('/uploads')) {
+    return `http://localhost:5000${imagePath}`;
+  }
+  
+  return imagePath;
+}

@@ -1,12 +1,14 @@
 // app/products/components/ProductCard.tsx
+"use client";
+
 import { Star, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface Product {
   id: number;
   name: string;
-  price: string;
-  originalPrice?: string;
+  price: number; // ✅ تغيير إلى number
+  originalPrice?: number; // ✅ تغيير إلى number
   discount?: string;
   rating: number;
   ratingStars?: string;
@@ -22,12 +24,26 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product }: ProductCardProps) {
-  const numericPrice = parseFloat(product.price.replace(/[^0-9.-]+/g, ""));
-  const numericOriginalPrice = product.originalPrice 
-    ? parseFloat(product.originalPrice.replace(/[^0-9.-]+/g, "")) 
-    : null;
+  // ✅ دالة لتنسيق السعر بشكل آمن
+  const formatPrice = (price: number | undefined | null): string => {
+    if (price === undefined || price === null || isNaN(price)) {
+      return '$0.00';
+    }
+    return `$${price.toFixed(2)}`;
+  };
 
-  // دالة لتحميل صورة افتراضية عند الخطأ
+  // ✅ دالة لحساب التوفير
+  const calculateSavings = (): number => {
+    if (!product.originalPrice || product.originalPrice <= product.price) {
+      return 0;
+    }
+    return product.originalPrice - product.price;
+  };
+
+  const savings = calculateSavings();
+  const hasDiscount = savings > 0;
+
+  // ✅ دالة لتحميل صورة افتراضية عند الخطأ
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
     target.style.display = 'none';
@@ -51,7 +67,7 @@ function ProductCard({ product }: ProductCardProps) {
         {/* صورة المنتج الحقيقية */}
         <div className="w-full h-full">
           <img
-            src={product.image}
+            src={product.image || "/placeholder.jpg"}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
@@ -90,7 +106,7 @@ function ProductCard({ product }: ProductCardProps) {
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <Button size="sm" className="bg-white text-black hover:bg-gray-100 shadow-md">
             <ShoppingCart size={16} className="mr-2" />
-            Add to Cart
+            أضف إلى السلة
           </Button>
           <Button size="sm" variant="outline" className="bg-white shadow-md">
             <Heart size={16} />
@@ -103,7 +119,7 @@ function ProductCard({ product }: ProductCardProps) {
         {/* Category */}
         <div className="flex justify-between items-start mb-2">
           <span className="text-xs text-gray-500 uppercase tracking-wider">
-            {product.category}
+            {product.category || "منتج"}
           </span>
           {product.color && (
             <span className="text-xs text-gray-500">{product.color}</span>
@@ -112,7 +128,7 @@ function ProductCard({ product }: ProductCardProps) {
         
         {/* Product Name */}
         <h3 className="font-bold text-lg mb-2 line-clamp-1 hover:text-blue-600 cursor-pointer">
-          {product.name}
+          {product.name || "اسم المنتج"}
         </h3>
         
         {/* Rating */}
@@ -123,7 +139,7 @@ function ProductCard({ product }: ProductCardProps) {
                 key={i}
                 size={16}
                 className={
-                  i < Math.floor(product.rating)
+                  i < Math.floor(product.rating || 0)
                     ? "text-yellow-400 fill-yellow-400"
                     : "text-gray-300"
                 }
@@ -131,7 +147,7 @@ function ProductCard({ product }: ProductCardProps) {
             ))}
           </div>
           <span className="text-sm text-gray-600">
-            {product.rating}/5
+            {(product.rating || 0).toFixed(1)}/5
           </span>
           {product.ratingStars && (
             <>
@@ -139,24 +155,22 @@ function ProductCard({ product }: ProductCardProps) {
               <span className="text-xs text-yellow-400">{product.ratingStars}</span>
             </>
           )}
-          <span className="text-xs text-gray-400">•</span>
-          <span className="text-xs text-gray-400">120 reviews</span>
         </div>
         
         {/* Price */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="font-bold text-2xl">${product.price}</span>
-            {product.originalPrice && (
+            <span className="font-bold text-2xl">
+              {formatPrice(product.price)}
+            </span>
+            {hasDiscount && (
               <>
                 <span className="text-gray-500 line-through text-lg">
-                  ${product.originalPrice}
+                  {formatPrice(product.originalPrice)}
                 </span>
-                {numericOriginalPrice && (
-                  <span className="text-sm text-red-500 font-semibold ml-1">
-                    Save ${(numericOriginalPrice - numericPrice).toFixed(2)}
-                  </span>
-                )}
+                <span className="text-sm text-red-500 font-semibold ml-1">
+                  وفر ${savings.toFixed(2)}
+                </span>
               </>
             )}
           </div>
@@ -167,7 +181,7 @@ function ProductCard({ product }: ProductCardProps) {
             className="bg-black hover:bg-gray-800 rounded-full px-4"
           >
             <ShoppingCart size={16} className="mr-2" />
-            Add
+            أضف
           </Button>
         </div>
       </div>

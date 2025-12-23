@@ -3,15 +3,15 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
-  stock: number;
-  image_urls: string[];
+  price: number;              // ✅ رقم (1222)
+  stock: number;              // ✅ رقم (8)
+  image_urls: string[];       // ✅ مصفوفة ["/uploads/products/..."]
   category_id: number;
-  category_name: string;
+  category_name: string;      // ✅ "clothes"
   active: boolean;
-  created_at: string;
-  review_count: number;
-  average_rating: number;
+  created_at: string;         // ✅ ISO string
+  review_count: number;       // ✅ رقم (0)
+  average_rating: number;     // ✅ رقم (0)
 }
 
 export interface Pagination {
@@ -21,6 +21,12 @@ export interface Pagination {
   totalPages: number;
 }
 
+export interface ProductsResponse {
+  data: any;
+  products: Product[];
+  pagination: Pagination;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -28,11 +34,4 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-export interface ProductsResponse {
-  data: any;
-  products: Product[];
-  pagination: Pagination;
-}
-
 export type ProductsApiResponse = ApiResponse<ProductsResponse>;
-export type ProductApiResponse = ApiResponse<Product>;

@@ -3,12 +3,13 @@
 
 import { Star, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export interface Product {
   id: number;
   name: string;
-  price: number; // ✅ تغيير إلى number
-  originalPrice?: number; // ✅ تغيير إلى number
+  price: number;
+  originalPrice?: number;
   discount?: string;
   rating: number;
   ratingStars?: string;
@@ -24,60 +25,51 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product }: ProductCardProps) {
-  // ✅ دالة لتنسيق السعر بشكل آمن
-  const formatPrice = (price: number | undefined | null): string => {
-    if (price === undefined || price === null || isNaN(price)) {
-      return '$0.00';
-    }
+  const navigate = useNavigate();
+
+  // ✅ دالة للانتقال إلى صفحة المنتج
+  const handleProductClick = () => {
+    navigate(`/product?id=${product.id}`);
+  };
+
+  // ✅ دالة لإضافة إلى السلة (منع الانتشار)
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log(`أضيف المنتج ${product.id} إلى السلة`);
+  };
+
+  // ✅ دالة للمفضلة
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log(`أضيف المنتج ${product.id} إلى المفضلة`);
+  };
+
+  // ✅ دالة لتنسيق السعر
+  const formatPrice = (price: number): string => {
     return `$${price.toFixed(2)}`;
   };
 
-  // ✅ دالة لحساب التوفير
-  const calculateSavings = (): number => {
-    if (!product.originalPrice || product.originalPrice <= product.price) {
-      return 0;
-    }
-    return product.originalPrice - product.price;
-  };
-
-  const savings = calculateSavings();
-  const hasDiscount = savings > 0;
-
-  // ✅ دالة لتحميل صورة افتراضية عند الخطأ
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const target = e.currentTarget;
-    target.style.display = 'none';
-    const fallback = target.parentElement;
-    if (fallback) {
-      fallback.innerHTML = `
-        <div class="w-full h-full flex items-center justify-center bg-gray-200">
-          <div class="text-gray-400 text-center">
-            <div class="text-2xl mb-2">🛍️</div>
-            <div class="text-sm">${product.name}</div>
-          </div>
-        </div>
-      `;
-    }
-  };
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group">
+    <div 
+      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer"
+      onClick={handleProductClick}
+    >
       {/* Product Image Container */}
       <div className="relative h-64 bg-gray-100 overflow-hidden">
-        {/* صورة المنتج الحقيقية */}
         <div className="w-full h-full">
           <img
             src={product.image || "/placeholder.jpg"}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
-            onError={handleImageError}
           />
         </div>
         
         {/* Discount Badge */}
         {product.discount && (
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3" onClick={(e) => e.stopPropagation()}>
             <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
               {product.discount}
             </span>
@@ -86,7 +78,7 @@ function ProductCard({ product }: ProductCardProps) {
         
         {/* New Badge */}
         {product.isNew && (
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
             <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
               NEW
             </span>
@@ -95,7 +87,7 @@ function ProductCard({ product }: ProductCardProps) {
         
         {/* Best Seller Badge */}
         {product.isBestSeller && (
-          <div className="absolute top-12 right-3">
+          <div className="absolute top-12 right-3" onClick={(e) => e.stopPropagation()}>
             <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full">
               BEST SELLER
             </span>
@@ -103,12 +95,24 @@ function ProductCard({ product }: ProductCardProps) {
         )}
         
         {/* Action Buttons */}
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <Button size="sm" className="bg-white text-black hover:bg-gray-100 shadow-md">
+        <div 
+          className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Button 
+            size="sm" 
+            className="bg-white text-black hover:bg-gray-100 shadow-md"
+            onClick={handleAddToCart}
+          >
             <ShoppingCart size={16} className="mr-2" />
             أضف إلى السلة
           </Button>
-          <Button size="sm" variant="outline" className="bg-white shadow-md">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="bg-white shadow-md"
+            onClick={handleFavorite}
+          >
             <Heart size={16} />
           </Button>
         </div>
@@ -116,22 +120,19 @@ function ProductCard({ product }: ProductCardProps) {
 
       {/* Product Info */}
       <div className="p-5">
-        {/* Category */}
         <div className="flex justify-between items-start mb-2">
           <span className="text-xs text-gray-500 uppercase tracking-wider">
-            {product.category || "منتج"}
+            {product.category}
           </span>
           {product.color && (
             <span className="text-xs text-gray-500">{product.color}</span>
           )}
         </div>
         
-        {/* Product Name */}
-        <h3 className="font-bold text-lg mb-2 line-clamp-1 hover:text-blue-600 cursor-pointer">
-          {product.name || "اسم المنتج"}
+        <h3 className="font-bold text-lg mb-2 line-clamp-1 hover:text-blue-600">
+          {product.name}
         </h3>
         
-        {/* Rating */}
         <div className="flex items-center gap-2 mb-3">
           <div className="flex">
             {[...Array(5)].map((_, i) => (
@@ -139,7 +140,7 @@ function ProductCard({ product }: ProductCardProps) {
                 key={i}
                 size={16}
                 className={
-                  i < Math.floor(product.rating || 0)
+                  i < Math.floor(product.rating)
                     ? "text-yellow-400 fill-yellow-400"
                     : "text-gray-300"
                 }
@@ -147,38 +148,26 @@ function ProductCard({ product }: ProductCardProps) {
             ))}
           </div>
           <span className="text-sm text-gray-600">
-            {(product.rating || 0).toFixed(1)}/5
+            {product.rating.toFixed(1)}/5
           </span>
-          {product.ratingStars && (
-            <>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-yellow-400">{product.ratingStars}</span>
-            </>
-          )}
         </div>
         
-        {/* Price */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-2xl">
               {formatPrice(product.price)}
             </span>
-            {hasDiscount && (
-              <>
-                <span className="text-gray-500 line-through text-lg">
-                  {formatPrice(product.originalPrice)}
-                </span>
-                <span className="text-sm text-red-500 font-semibold ml-1">
-                  وفر ${savings.toFixed(2)}
-                </span>
-              </>
+            {hasDiscount && product.originalPrice && (
+              <span className="text-gray-500 line-through text-lg">
+                {formatPrice(product.originalPrice)}
+              </span>
             )}
           </div>
           
-          {/* Quick Add Button */}
           <Button 
             size="sm" 
             className="bg-black hover:bg-gray-800 rounded-full px-4"
+            onClick={handleAddToCart}
           >
             <ShoppingCart size={16} className="mr-2" />
             أضف

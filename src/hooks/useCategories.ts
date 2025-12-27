@@ -1,26 +1,68 @@
-// // src/hooks/useCategories.ts
-// import { useQuery } from '@tanstack/react-query';
-// import { categoryService } from '@/services/category.service';
+import { api } from '@/lib/api-client';
 
-// export const useCategories = (params?: any) => {
-//   return useQuery({
-//     queryKey: ['categories', params],
-//     queryFn: () => categoryService.getCategories(params),
-//   });
-// };
+export interface Category {
+  id: number;
+  name: string;
+  image_url?: string;
+  created_at?: string;
+  products_count?: string | number;
+}
 
-// export const useHomepageCategories = (limit: number = 4) => {
-//   return useQuery({
-//     queryKey: ['categories', 'homepage', limit],
-//     queryFn: () => categoryService.getHomepageCategories(limit),
-//     staleTime: 5 * 60 * 1000, // 5 دقائق
-//   });
-// };
+export interface CategoriesResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  data: {
+    categories: Category[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
 
-// export const useCategory = (id: number) => {
-//   return useQuery({
-//     queryKey: ['category', id],
-//     queryFn: () => categoryService.getCategoryById(id),
-//     enabled: !!id, // فقط إذا كان الـ ID موجوداً
-//   });
-// };
+export const categoryService = {
+  // جلب جميع التصنيفات من API
+  async getCategories(): Promise<Category[]> {
+    try {
+      console.log('🔍 [CategoryService] جلب التصنيفات من API...');
+      
+      const response = await api.get<CategoriesResponse>('/admin/categories', {
+        params: { limit: 50 }
+      });
+
+      if (!response.data?.data?.categories) {
+        console.warn('⚠️ لا توجد تصنيفات في الرد');
+        return [];
+      }
+
+      const categories = response.data.data.categories;
+      console.log(`✅ تم جلب ${categories.length} تصنيف`);
+      
+      // عرض عينة من التصنيفات
+      if (categories.length > 0) {
+        console.log('📝 عينة من التصنيفات:', categories.slice(0, 3));
+      }
+      
+      return categories;
+
+    } catch (error: any) {
+      console.error('❌ خطأ في جلب التصنيفات:', error);
+      throw error;
+    }
+  },
+
+  // جلب تصنيف معين بواسطة ID
+  async getCategoryById(id: number): Promise<Category | null> {
+    try {
+      console.log(`🔍 [CategoryService] جلب التصنيف ${id}...`);
+      const categories = await this.getCategories();
+      return categories.find(cat => cat.id === id) || null;
+    } catch (error) {
+      console.error(`❌ خطأ في جلب التصنيف ${id}:`, error);
+      return null;
+    }
+  }
+};

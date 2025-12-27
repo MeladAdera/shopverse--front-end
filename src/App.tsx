@@ -6,9 +6,8 @@ import ProductPage from "./routes/producDatails";
 import Page from "./routes/Page";
 import CartPage from "./routes/Cartpage";
 
-function App() {
-  
 
+function App() {
   return (
     <div className="min-h-screen"> {/* بدون <Router> هنا */}
       
@@ -17,11 +16,12 @@ function App() {
       
       <Routes>
         <Route path="/" element={<Homepage />} />
-        <Route path="/products" element={<ProductPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
          <Route path="/category/:id" element={<Page />} />
 
         <Route path="/cart" element={<CartPage />} />
       </Routes>
+      
     </div>
   );
 }

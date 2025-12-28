@@ -8,7 +8,7 @@ import { useFilteredData } from '@/hooks/useFilteredData';
 import ImageService from '@/lib/imageService';
 
 function ProductsGrid() {
-  const { id } = useParams<{ id?: string }>();
+    const { id } = useParams<{ id?: string }>();
   const categoryId = id ? parseInt(id) : undefined;
   
   // 🎯 استخدم الهوك المدمج
@@ -184,32 +184,57 @@ function ProductsGrid() {
       </div>
 
       {/* Products Grid */}
-      <div className={viewMode === "grid" 
-        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        : "space-y-6"
-      }>
-        {currentProducts.map((product: any) => (
-          viewMode === "grid" ? (
-            <ProductCard key={product.id} product={product} />
-          ) : (
-            <div key={product.id} className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow">
-              <div className="flex gap-4">
-                <img 
-                  src={product.image} 
-                  alt={product.name}
-                  className="w-32 h-32 object-cover rounded"
-                />
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg mb-2">{product.name}</h3>
-                  <p className="text-gray-600 text-xl font-semibold mb-1">${product.price}</p>
-                  <p className="text-sm text-gray-500 mb-3">{product.category}</p>
-                  <p className="text-gray-700 line-clamp-2">{product.description}</p>
-                </div>
-              </div>
-            </div>
-          )
-        ))}
+<div className={viewMode === "grid" 
+  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+  : "space-y-6"
+}>
+  {currentProducts.map((product: any) => {
+    // 🔍 تحقق من بيانات المنتج
+    console.log('📦 [ProductsGrid] رسم منتج:', {
+      id: product.id,
+      name: product.name,
+      typeOfId: typeof product.id
+    });
+
+    if (!product.id) {
+      console.warn('⚠️ [ProductsGrid] منتج بدون ID:', product);
+      return null;
+    }
+
+    return viewMode === "grid" ? (
+      <ProductCard key={product.id} product={product} />
+    ) : (
+      // 🔧 للعرض كقائمة: استخدم div مع onClick
+      <div 
+        key={product.id} 
+        className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow cursor-pointer"
+        onClick={() => {
+          console.log('🖱️ النقر على المنتج من القائمة:', product.id);
+          navigator(`/product/${product.id}`);
+        }}
+      >
+        <div className="flex gap-4">
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className="w-32 h-32 object-cover rounded"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.jpg';
+            }}
+          />
+          <div className="flex-1">
+            <h3 className="font-bold text-lg mb-2 hover:text-blue-600 transition-colors">
+              {product.name}
+            </h3>
+            <p className="text-gray-600 text-xl font-semibold mb-1">${product.price}</p>
+            <p className="text-sm text-gray-500 mb-3">{product.category}</p>
+            <p className="text-gray-700 line-clamp-2">{product.description}</p>
+          </div>
+        </div>
       </div>
+    );
+  })}
+</div>
 
       {/* Pagination */}
       {transformedProducts.length > itemsPerPage && (

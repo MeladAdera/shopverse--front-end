@@ -1,8 +1,41 @@
 // src/services/product.service.ts
-import { api } from '@/lib/api-client';
-import type { ProductsResponse, Product } from '@/types/product';
+import { api } from '@/lib/api-client'; // ✅ استيراد getImageUrl
+import type { ProductsResponse, Product, ProductApiResponse } from '@/types/product';
 
 export const productService = {
+   getProductById: async (productId: number | string): Promise<Product> => {
+    try {
+      const response = await api.get<ProductApiResponse>(`/products/${productId}`);
+      
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'Product not found');
+      }
+      
+      const product = response.data.data;
+      
+      // 🔧 **إصلاح مسارات الصور**
+      if (product.image_urls && Array.isArray(product.image_urls)) {
+        product.image_urls = product.image_urls.map(img => {
+          // تحويل uploads إلى public
+          if (img && img.includes('/uploads/')) {
+            return img.replace('/uploads/', '/public/');
+          }
+          return img;
+        });
+      }
+      
+      console.log('✅ [productService] المنتج بعد الإصلاح:', {
+        id: product.id,
+        name: product.name,
+        image_urls: product.image_urls
+      });
+      
+      return product;
+    } catch (error) {
+      console.error('❌ [productService] خطأ:', error);
+      throw error;
+    }
+  },
   getProductsByCategory: async (categoryId: number): Promise<Product[]> => {
     console.log('🔍 Getting products for category:', categoryId);
     

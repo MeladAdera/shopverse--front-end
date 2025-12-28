@@ -1,17 +1,28 @@
 // src/types/product.ts
+
 export interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;              // ✅ رقم (1222)
-  stock: number;              // ✅ رقم (8)
-  image_urls: string[];       // ✅ مصفوفة ["/uploads/products/..."]
+  price: number;
+  stock: number;
+  image_urls: string[];
   category_id: number;
-  category_name: string;      // ✅ "clothes"
+  category_name: string;
   active: boolean;
-  created_at: string;         // ✅ ISO string
-  review_count: number;       // ✅ رقم (0)
-  average_rating: number;     // ✅ رقم (0)
+  created_at: string;
+  review_count: number;
+  average_rating: number;
+  
+  // ✅ إضافة الحقول الجديدة من بياناتك
+  color: string;
+  size: string;
+  style: string;
+  brand: string;
+  gender: string;
+  season: string;
+  material: string;
+  sales_count: number;
 }
 
 export interface Pagination {
@@ -35,3 +46,31 @@ export interface ApiResponse<T> {
 }
 
 export type ProductsApiResponse = ApiResponse<ProductsResponse>;
+
+// ✅ إضافة نوع خاص لاستجابة المنتج الواحد
+export type ProductApiResponse = ApiResponse<Product>;
+
+// في src/types/product.ts
+export interface Review {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email?: string;
+  product_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export interface ReviewsApiResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  data: Review[];
+}
+
+export interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+}

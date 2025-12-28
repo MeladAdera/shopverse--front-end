@@ -1,6 +1,9 @@
+
+// src/routes/producDatails.tsx
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { ShoppingCart, Check, Minus, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, Check, Minus, Plus, Loader2 } from "lucide-react";
+import { useParams, useNavigate } from 'react-router-dom';
 
 import {
   Breadcrumb,
@@ -14,34 +17,30 @@ import { ReviewCard } from "../components/productdatails/ReviewCard";
 import Galliry from "../components/ui/Galliry";
 import Subscribe from "../components/ui/Subscribe";
 import Footer from "../components/ui/Footer";
+import { productService } from '@/services/product.service';
+import type { Product } from '@/types/product';
 
 const ProductPage: React.FC = () => {
-  // بيانات الصور (افتراضية - يمكنك تغييرها)
-  const productImages = [
-    "/image copy 9.png",
-    "/image copy 10.png",
-    "/image copy 11.png", 
-    "/image copy 12.png"
-  ];
-
-  // بيانات المنتج من الملف الذي أرسلته
-  const product = {
-    name: "ONE LIFE GRAPHIC T-SHIRT",
-    rating: 4.5,
-    originalPrice: 300,
-    salePrice: 260,
-    discount: 40,
-    description: "This graphic t-shirt which is perfect for any occasion. Crafted from a soft and breathable fabric, it offers superior comfort and style.",
-    colors: ["Black", "Blue", "Red", "Green"],
-    sizes: ["Small", "Medium", "Large", "X-Large"]
-  };
-
-  // حالات التحديد
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const productId = id ? parseInt(id) : null;
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(1); 
-    const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'faq'>('details');
-   
+  // 🔧 **تغيير هنا: تخزين القيمة الفعلية بدلاً من index**
+  const [selectedColor, setSelectedColor] = useState<string>("Black");
+  const [selectedSize, setSelectedSize] = useState<string>("Medium"); 
+  const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'faq'>('details');
+  
+  // 🔧 **الـ 4 ألوان الأساسية**
+  const baseColors = ["Black", "Blue", "Red", "Green"];
+  
+  // 🔧 **الـ 4 مقاسات الأساسية**
+  const baseSizes = ["Small", "Medium", "Large", "X-Large"];
+  
   const AlsoLikeProducts = [
     {
       name: "VERTICAL STRIPED SHIRT",
@@ -84,17 +83,89 @@ const ProductPage: React.FC = () => {
       ratingStars: "★★★★★"
     },
   ];
-    const AlsoLike = (
+  
+  const AlsoLike = (
     <svg width="100%" height="36" viewBox="0 0 578 36" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M38.56 1.11997L24.8 24.28V34.72H13.72V24.24L0 1.11997H11.64L18.84 13.76H19.72L26.92 1.11997H38.56ZM54.8088 35.84C43.2487 35.84 35.7688 28.68 35.7688 17.92C35.7688 7.15997 43.2487 -3.05176e-05 54.8088 -3.05176e-05C66.3688 -3.05176e-05 73.8488 7.15997 73.8488 17.92C73.8488 28.68 66.3688 35.84 54.8088 35.84ZM54.8088 26.28C59.2087 26.28 62.8488 23.24 62.8488 17.92C62.8488 12.6 59.2087 9.55997 54.8088 9.55997C50.4088 9.55997 46.7688 12.6 46.7688 17.92C46.7688 23.24 50.4088 26.28 54.8088 26.28ZM93.4719 35.84C81.9119 35.84 76.0719 30.92 76.0719 20.08V1.11997H87.2319V19.8C87.2319 23.96 89.0719 26.56 93.4719 26.56C97.8719 26.56 99.7919 23.96 99.7919 19.8V1.11997H110.872V20C110.872 30.92 105.032 35.84 93.4719 35.84ZM124.072 34.72V1.11997H138.032L143.512 20.28H144.312L149.792 1.11997H163.752V34.72H153.192V19.84H152.312L148.032 34.72H139.792L135.512 19.84H134.632V34.72H124.072ZM166.541 34.72V1.11997H177.621V34.72H166.541ZM216.576 16.16V34.72H210.656L210.496 30.28C208.176 33.48 203.976 35.84 198.056 35.84C187.736 35.84 179.816 28.68 179.816 17.92C179.816 7.15997 187.336 -3.05176e-05 199.016 -3.05176e-05C206.976 -3.05176e-05 215.096 3.83997 216.416 12.88H205.416C204.736 11.2 202.536 9.55997 199.256 9.55997C194.296 9.55997 190.816 12.84 190.816 17.92C190.816 23 194.376 26.28 198.936 26.28C200.576 26.28 204.776 25.84 205.896 21.92H198.496V16.16H216.576ZM243.676 1.11997H254.756V34.72H243.676V22.56H230.636V34.72H219.556V1.11997H230.636V13.28H243.676V1.11997ZM292.612 1.11997V10.36H280.532V34.72H269.452V10.36H257.372V1.11997H292.612ZM333.219 34.72L331.739 30.28H317.339L315.859 34.72H304.419L316.779 1.11997H332.299L344.659 34.72H333.219ZM320.059 22.08H329.019L325.499 11.52H323.579L320.059 22.08ZM346.259 34.72V1.11997H357.339V25.48H375.259V34.72H346.259ZM394.041 35.84C382.441 35.8 376.961 32.2 377.241 23.48H387.201C387.321 25.76 389.241 27.16 394.041 27.2C398.281 27.24 400.241 26.04 400.241 24.48C400.241 23.4 399.641 22.28 396.361 21.8L392.041 21.12C385.681 20.08 378.041 19.32 378.041 10.72C378.041 4.07997 383.441 -3.05176e-05 394.121 -3.05176e-05C403.761 -3.05176e-05 410.481 2.67997 410.281 12.28H400.401C400.001 10.04 398.121 8.63997 393.881 8.63997C390.201 8.63997 388.681 9.75997 388.681 11.28C388.681 12.24 389.281 13.4 391.841 13.8L395.401 14.4C402.081 15.52 411.241 15.72 411.241 24.92C411.241 32.24 405.561 35.88 394.041 35.84ZM431.778 35.84C420.217 35.84 412.738 28.68 412.738 17.92C412.738 7.15997 420.217 -3.05176e-05 431.778 -3.05176e-05C443.338 -3.05176e-05 450.818 7.15997 450.818 17.92C450.818 28.68 443.338 35.84 431.778 35.84ZM431.778 26.28C436.177 26.28 439.818 23.24 439.818 17.92C439.818 12.6 436.177 9.55997 431.778 9.55997C427.378 9.55997 423.738 12.6 423.738 17.92C423.738 23.24 427.378 26.28 431.778 26.28ZM463.447 34.72V1.11997H474.527V25.48H492.447V34.72H463.447ZM495.228 34.72V1.11997H506.308V34.72H495.228ZM545.743 34.72H534.423L525.463 22.76H524.743L520.143 27.68V34.72H509.103V1.11997H520.143V14.44H520.863L532.983 1.11997H545.303L531.663 16.08L545.743 34.72ZM546.744 34.72V1.11997H577.024V9.99997H557.824V14.28H576.304V21.56H557.824V25.84H577.024V34.72H546.744Z" fill="black"/>
 </svg>
-
   );
 
-  
+   // جلب بيانات المنتج
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!productId) {
+        setError('Product ID is missing');
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const productData = await productService.getProductById(productId);
+        setProduct(productData);
+      } catch (err: any) {
+        console.error('Error fetching product:', err);
+        setError(err.message || 'Failed to load product');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProductData();
+  }, [productId]);
+
+  // وظيفة لبناء رابط الصورة
+  const getImageUrl = (imagePath: string): string => {
+    if (!imagePath) return '/placeholder.jpg';
+    
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    if (imagePath.startsWith('/')) {
+      return `http://localhost:5000${imagePath}`;
+    }
+    
+    return imagePath;
+  };
+
+  // عرض حالة التحميل
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-black mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900">Loading Product</h3>
+          <p className="text-gray-600">Please wait...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // عرض حالة الخطأ
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
+          <p className="text-gray-600 mb-6">{error || 'Product not available'}</p>
+          <Button
+            onClick={() => navigate('/')}
+            className="bg-black text-white hover:bg-gray-800"
+          >
+            Back to Shop
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
-        {/* Breadcrumb - بدون Link */}
+        {/* Breadcrumb */}
       <div className="container mx-auto px-4 md:px-8 py-4">
         <Breadcrumb>
           <BreadcrumbList>
@@ -118,15 +189,15 @@ const ProductPage: React.FC = () => {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink 
-                href="/shop/men" 
+                href={`/category/${product.category_id}`}
                 className="text-gray-500 hover:text-black"
               >
-                Men
+                {product.category_name}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-black">T-shirts</BreadcrumbPage>
+              <BreadcrumbPage className="text-black">{product.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -142,20 +213,23 @@ const ProductPage: React.FC = () => {
     
     {/* Left Column - Thumbnail Images */}
     <div className="flex lg:flex-col order-2 lg:order-1 gap-3 lg:gap-4 w-full lg:w-1/4 h-full lg:h-full ">
-      {productImages.slice(0, 3).map((img, index) => (
+      {product.image_urls.slice(0, 3).map((img, index) => (
         <button
           key={index}
           onClick={() => setSelectedImage(index)}
-          className={`relative  overflow-hidden rounded-lg border-2 transition-all w-full h-full ${
+          className={`relative overflow-hidden rounded-lg  transition-all w-full h-full ${
             selectedImage === index 
               ? "border-black" 
               : "border-gray-200 hover:border-gray-400"
           }`}
         >
           <img 
-            src={img} 
+            src={getImageUrl(img)} 
             alt={`Product view ${index + 1}`}
-            className="  object-cover aspect-square lg:aspect-auto "
+            className="object-cover aspect-square lg:aspect-auto"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.jpg';
+            }}
           />
         </button>
       ))}
@@ -163,11 +237,14 @@ const ProductPage: React.FC = () => {
 
               {/* Right Column - Main Image */}
                <div className="order-1 lg:order-2 lg:w-3/4 h-full lg:h-full">
-      <div className="relative  h-full overflow-hidden rounded-xl bg-gray-100 aspect-square lg:aspect-auto ">
+      <div className="relative h-full overflow-hidden rounded-xl bg-gray-100 aspect-square lg:aspect-auto ">
         <img 
-          src={productImages[selectedImage]} 
+          src={getImageUrl(product.image_urls[selectedImage])} 
           alt={product.name}
-          className=" h-full object-cover transition-transform duration-300 hover:scale-105"
+          className="h-full object-cover transition-transform duration-300 hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = '/placeholder.jpg';
+          }}
         />
                 </div>
               </div>
@@ -191,7 +268,7 @@ const ProductPage: React.FC = () => {
           <svg 
             key={i}
             className={`w-5 h-5 ${
-              i < Math.floor(product.rating) 
+              i < Math.floor(product.average_rating || 0) 
                 ? "text-yellow-400 fill-yellow-400" 
                 : "text-gray-300"
             }`}
@@ -203,7 +280,8 @@ const ProductPage: React.FC = () => {
         ))}
       </div>
       <span className="text-gray-600">
-        {product.rating}/5
+        {(product.average_rating || 0).toFixed(1)}/5
+        {product.review_count > 0 && ` (${product.review_count} reviews)`}
       </span>
     </div>
   </div>
@@ -212,14 +290,18 @@ const ProductPage: React.FC = () => {
   <div className="pb-4 md:pb-6 border-b border-gray-200">
     <div className="flex items-center gap-3">
       <span className="text-3xl md:text-4xl font-bold text-gray-900">
-        ${product.salePrice}
+        ${product.price.toFixed(2)}
       </span>
-      <span className="text-xl text-gray-500 line-through">
-        ${product.originalPrice}
-      </span>
-      <span className="bg-red-50 text-red-600 px-2 py-1 rounded text-sm font-bold">
-        Save ${product.originalPrice - product.salePrice}
-      </span>
+      {product.price < 1000 && (
+        <>
+          <span className="text-xl text-gray-500 line-through">
+            ${(product.price * 1.2).toFixed(2)}
+          </span>
+          <span className="bg-red-50 text-red-600 px-2 py-1 rounded text-sm font-bold">
+            Save ${(product.price * 0.2).toFixed(2)}
+          </span>
+        </>
+      )}
     </div>
   </div>
 
@@ -230,12 +312,12 @@ const ProductPage: React.FC = () => {
     </p>
   </div>
 
-  {/* Color Selection */}
+  {/* 🔧 **Color Selection - المعدلة** */}
   <div className="pb-6 md:pb-8 border-b border-gray-200">
     <div className="space-y-3">
       <h3 className="font-semibold text-gray-900">Select Colors</h3>
       <div className="flex gap-3">
-        {product.colors.map((color, index) => {
+        {baseColors.map((color) => {
           const colorCodes: { [key: string]: string } = {
             "Black": "#000000",
             "Blue": "#3B82F6",
@@ -246,15 +328,15 @@ const ProductPage: React.FC = () => {
           return (
             <button
               key={color}
-              onClick={() => setSelectedColor(index)}
+              onClick={() => setSelectedColor(color)} // ✅ اختيار اللون بالاسم
               className={`relative w-10 h-10 rounded-full border-2 transition-all ${
-                selectedColor === index 
+                selectedColor === color 
                   ? "border-black" 
                   : "border-gray-300 hover:border-gray-400"
               }`}
               style={{ backgroundColor: colorCodes[color] || "#ccc" }}
             >
-              {selectedColor === index && (
+              {selectedColor === color && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Check className="w-5 h-5 text-white" />
                 </div>
@@ -267,17 +349,17 @@ const ProductPage: React.FC = () => {
     </div>
   </div>
 
-  {/* Size Selection */}
+  {/* 🔧 **Size Selection - المعدلة** */}
   <div className="pb-6 md:pb-8 border-b border-gray-200">
     <div className="space-y-3">
       <h3 className="font-semibold text-gray-900">Choose Size</h3>
       <div className="flex gap-5">
-        {product.sizes.map((size, index) => (
+        {baseSizes.map((size) => (
           <button
             key={size}
-            onClick={() => setSelectedSize(index)}
+            onClick={() => setSelectedSize(size)} // ✅ اختيار المقاس بالاسم
             className={`px-2 py-2 rounded-full border-2 font-medium transition-all ${
-              selectedSize === index
+              selectedSize === size
                 ? "bg-black text-white border-black"
                 : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
             }`}
@@ -289,8 +371,8 @@ const ProductPage: React.FC = () => {
     </div>
   </div>
 
-  {/* Buttons - بدون Border لأنها آخر قسم */}
-  <div className="pt-2"> {/* Add top padding instead of border */}
+  {/* Buttons */}
+  <div className="pt-2">
     <div className="flex flex-row sm:flex-row gap-3 sm:gap-4">
       
       {/* Quantity Button */}
@@ -314,6 +396,16 @@ const ProductPage: React.FC = () => {
                   rounded-full 
                   w-full sm:w-auto sm:flex-2
                   flex items-center justify-center gap-2"
+        onClick={() => {
+          console.log('🛒 Adding to cart:', {
+            productId: product.id,
+            name: product.name,
+            color: selectedColor,
+            size: selectedSize,
+            quantity: 1
+          });
+          alert(`Added to cart!\nColor: ${selectedColor}\nSize: ${selectedSize}`);
+        }}
       >
         <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
         Add to Cart
@@ -366,7 +458,7 @@ const ProductPage: React.FC = () => {
                 : 'bg-gray-200 text-gray-600'
               }
             `}>
-              45
+              {product.review_count || 0}
             </span>
           )}
         </div>
@@ -390,16 +482,17 @@ const ProductPage: React.FC = () => {
     </button>
   </div>
 </div>
-{/*  */}
+
+{/* Also Like Products */}
 <Galliry  titleSvg={AlsoLike}
       products={AlsoLikeProducts}/>
       </div>
+      
       {/* Subscribe */}
       <Subscribe/>
-      {/* Footer Section - التصميم النهائي */}
-        <Footer/>
-
       
+      {/* Footer */}
+      <Footer/>
     </div>
   );
 };

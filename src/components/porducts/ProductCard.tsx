@@ -1,4 +1,3 @@
-// app/products/components/ProductCard.tsx
 "use client";
 
 import { Star, ShoppingCart, Heart } from "lucide-react";
@@ -25,23 +24,34 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product }: ProductCardProps) {
+  // 🔧 استخدم useNavigate بشكل صحيح
   const navigate = useNavigate();
 
-  // ✅ دالة للانتقال إلى صفحة المنتج
+  // ✅ تأكد أن navigate دالة
   const handleProductClick = () => {
-    navigate(`/product?id=${product.id}`);
+    console.log('🖱️ النقر على المنتج رقم:', product.id);
+    
+    // 🔧 تأكد من استخدام navigate كدالة
+    if (typeof navigate === 'function') {
+      navigate(`/product/${product.id}`);
+    } else {
+      console.error('❌ navigate ليست دالة:', navigate);
+      // بديل: استخدام window.location
+      window.location.href = `/product/${product.id}`;
+    }
   };
 
-  // ✅ دالة لإضافة إلى السلة (منع الانتشار)
+  // ✅ دالة لإضافة إلى السلة
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log(`أضيف المنتج ${product.id} إلى السلة`);
+    console.log(`🛒 أضيف المنتج ${product.id} إلى السلة`);
+    // هنا يمكنك إضافة منطق إضافة المنتج للسلة
   };
 
   // ✅ دالة للمفضلة
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log(`أضيف المنتج ${product.id} إلى المفضلة`);
+    console.log(`❤️ أضيف المنتج ${product.id} إلى المفضلة`);
   };
 
   // ✅ دالة لتنسيق السعر
@@ -64,6 +74,9 @@ function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.jpg';
+            }}
           />
         </div>
         
@@ -80,7 +93,7 @@ function ProductCard({ product }: ProductCardProps) {
         {product.isNew && (
           <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
             <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              NEW
+              جديد
             </span>
           </div>
         )}
@@ -89,7 +102,7 @@ function ProductCard({ product }: ProductCardProps) {
         {product.isBestSeller && (
           <div className="absolute top-12 right-3" onClick={(e) => e.stopPropagation()}>
             <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              BEST SELLER
+              الأكثر مبيعاً
             </span>
           </div>
         )}

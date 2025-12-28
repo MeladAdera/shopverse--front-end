@@ -220,7 +220,7 @@ const ProductPage: React.FC = () => {
           className={`relative overflow-hidden rounded-lg  transition-all w-full h-full ${
             selectedImage === index 
               ? "border-black" 
-              : "border-gray-200 hover:border-gray-400"
+              : " hover:border-gray-400"
           }`}
         >
           <img 
@@ -473,14 +473,24 @@ const ProductPage: React.FC = () => {
   </div>
   
   {/* Reviews Grid */}
-  <ReviewCard/>
+  <ReviewCard 
+  productId={productId ?? undefined} 
+  showAll={true} 
+/>
+
   
   {/* Learn More Reviews Button - بسيط */}
+ {product.review_count > 1 && (
   <div className="text-center mt-8">
-    <button className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-medium transition-colors">
-      Learn More Reviews
+    <button 
+      onClick={() => navigate(`/product/${productId}/reviews`)}
+      className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-medium transition-colors"
+    >
+      View All Reviews ({product.review_count})
     </button>
   </div>
+)}
+
 </div>
 
 {/* Also Like Products */}

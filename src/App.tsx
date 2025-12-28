@@ -5,6 +5,7 @@ import Homepage from "./routes/Homepage";
 import ProductPage from "./routes/producDatails";
 import Page from "./routes/Page";
 import CartPage from "./routes/Cartpage";
+import AllReviewsPage from './routes/AllReviewsPage';
 
 
 function App() {
@@ -18,6 +19,8 @@ function App() {
         <Route path="/" element={<Homepage />} />
         <Route path="/product/:id" element={<ProductPage />} />
          <Route path="/category/:id" element={<Page />} />
+         <Route path="/product/:id/reviews" element={<AllReviewsPage />} />
+
 
         <Route path="/cart" element={<CartPage />} />
       </Routes>

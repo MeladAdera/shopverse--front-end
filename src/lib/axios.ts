@@ -1,91 +1,84 @@
-// src/lib/axios.ts
+// src/lib/api.ts
 import axios from 'axios';
 
-// إنشاء instance مخصص
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+// Create axios instance
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api', // Your backend URL
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 ثواني
 });
 
-// Request interceptor لإضافة التوكن
+// Add token to requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
+    console.log('🔐 Token being sent:', token ? 'Yes' : 'No');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('📨 Request headers:', config.headers);
     }
     return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
 );
 
-// Response interceptor للتعامل مع الأخطاء
+// Handle token refresh
+let isRefreshing = false;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // إذا كان الخطأ 401 (غير مصرح) ولم نجرّب من قبل
+    // If 401 error and haven't tried refreshing yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, wait
+        return new Promise((_resolve, reject) => {
+          // We'll handle this later
+          reject(error);
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        // محاولة تجديد التوكن
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
 
+        // Call refresh token endpoint
         const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
+          'http://localhost:3000/api/auth/refresh-token',
           { refreshToken }
         );
 
         const { accessToken } = response.data;
+        
+        // Save new token
         localStorage.setItem('access_token', accessToken);
-
-        // إعادة المحاولة بالتوكن الجديد
+        
+        // Retry original request
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // إذا فشل تجديد التوكن، ننقل إلى صفحة الدخول
+        // Clear all auth data
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         
-        // إعادة توجيه إلى صفحة الدخول إذا كنا في المتصفح
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-        
+        // Redirect to login
+        window.location.href = '/login';
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
-    }
-
-    // التعامل مع أخطاء أخرى
-    if (error.response) {
-      // خطأ من السيرفر
-      console.error('API Error:', error.response.data);
-    } else if (error.request) {
-      // لم تصل الطلبية للسيرفر
-      console.error('Network Error:', error.message);
-    } else {
-      // خطأ في إعداد الطلب
-      console.error('Request Error:', error.message);
     }
 
     return Promise.reject(error);
   }
 );
 
-// دالة مساعدة لتحميل الصور
-export const getImageUrl = (path: string): string => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${import.meta.env.VITE_BASE_URL}${path}`;
-};
+export default api;

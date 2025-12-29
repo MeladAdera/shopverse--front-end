@@ -1,5 +1,5 @@
 // src/services/review.service.ts
-import { api } from '@/lib/api-client';
+import api from '../lib/axios';
 import type { ReviewsApiResponse, Review } from '@/types/product';
 
 export const reviewService = {
@@ -34,15 +34,33 @@ export const reviewService = {
     try {
       console.log('📝 إنشاء تقييم جديد:', reviewData);
       
-      // يمكنك إضافة التوكن هنا إذا كان API يتطلب مصادقة
-      const response = await api.post('/reviews', reviewData);
+      // ✅ CORRECT ENDPOINT: POST /api/products/:productId/reviews
+      const response = await api.post(
+        `/products/${reviewData.product_id}/reviews`,
+        {
+          rating: reviewData.rating,
+          comment: reviewData.comment
+        }
+      );
+      
+      console.log('✅ تم إضافة التقييم بنجاح:', response.data);
       
       return {
         success: true,
         message: response.data?.message || 'تم إضافة التقييم بنجاح'
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ خطأ في إنشاء التقييم:', error);
+      
+      // Add more detailed error logging
+      if (error.response) {
+        console.error('📋 تفاصيل الخطأ:', {
+          status: error.response.status,
+          data: error.response.data,
+          endpoint: error.config?.url
+        });
+      }
+      
       throw error;
     }
   }

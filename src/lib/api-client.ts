@@ -16,7 +16,7 @@ export const getImageUrl = (imagePath: string): string => {
   if (imagePath.startsWith('http')) return imagePath;
   
   // إذا كان المسار يبدأ بـ /uploads
-  if (imagePath.startsWith('/uploads')) {
+  if (imagePath.startsWith('/public')) {
     return `http://localhost:5000${imagePath}`;
   }
   

@@ -63,5 +63,54 @@ export const reviewService = {
       
       throw error;
     }
+  },
+    deleteReview: async (reviewId: number): Promise<{ 
+    success: boolean; 
+    message: string;
+  }> => {
+    try {
+      console.log(`🗑️ محاولة حذف التقييم: ${reviewId}`);
+      
+      // 🔥 الطلب إلى الـ API
+      const response = await api.delete(`/reviews/${reviewId}`);
+      
+      console.log('✅ تم حذف التقييم:', response.data);
+      
+      return {
+        success: true,
+        message: response.data?.message || 'تم حذف التقييم بنجاح'
+      };
+    } catch (error: any) {
+      console.error('❌ خطأ في حذف التقييم:', error);
+      
+      let errorMessage = 'Failed to delete review';
+      
+      if (error.response) {
+        console.error('📋 تفاصيل الخطأ:', {
+          status: error.response.status,
+          data: error.response.data,
+          reviewId
+        });
+        
+        // رسائل خطأ محددة
+        switch (error.response.status) {
+          case 401:
+            errorMessage = 'Please login to delete review';
+            break;
+          case 403:
+            errorMessage = 'You can only delete your own reviews';
+            break;
+          case 404:
+            errorMessage = 'Review not found';
+            break;
+          default:
+            errorMessage = error.response.data?.message || errorMessage;
+        }
+      } else if (error.request) {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      throw new Error(errorMessage);
+    }
   }
 };

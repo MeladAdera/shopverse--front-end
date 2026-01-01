@@ -19,6 +19,7 @@ import Subscribe from "../components/ui/Subscribe";
 import Footer from "../components/ui/Footer";
 import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product';
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const ProductPage: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>("Black");
   const [selectedSize, setSelectedSize] = useState<string>("Medium"); 
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'faq'>('details');
+    const { userId } = useCurrentUser();
+
   
   // 🔧 **الـ 4 ألوان الأساسية**
   const baseColors = ["Black", "Blue", "Red", "Green"];
@@ -473,10 +476,11 @@ const ProductPage: React.FC = () => {
   </div>
   
   {/* Reviews Grid */}
-  <ReviewCard 
-  productId={productId ?? undefined} 
-  showAll={true} 
-/>
+ <ReviewCard 
+      productId={productId ?? undefined} 
+      showAll={true}
+      currentUserId={userId} // 🔥 تمرير userId
+    />
 
   
   {/* Learn More Reviews Button - بسيط */}

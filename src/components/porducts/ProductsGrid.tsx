@@ -210,7 +210,6 @@ function ProductsGrid() {
         className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow cursor-pointer"
         onClick={() => {
           console.log('🖱️ النقر على المنتج من القائمة:', product.id);
-          navigator(`/product/${product.id}`);
         }}
       >
         <div className="flex gap-4">

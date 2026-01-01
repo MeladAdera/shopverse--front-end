@@ -3,6 +3,8 @@
 import { Star, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/hooks/useCart"; // Import the hook
+import { useState, useEffect } from "react";
 
 export interface Product {
   id: number;
@@ -24,42 +26,72 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product }: ProductCardProps) {
-  // 🔧 استخدم useNavigate بشكل صحيح
   const navigate = useNavigate();
+  const { addToCart, isLoading } = useCart(); // Use the hook
+  const [addedRecently, setAddedRecently] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
-  // ✅ تأكد أن navigate دالة
   const handleProductClick = () => {
     console.log('🖱️ النقر على المنتج رقم:', product.id);
     
-    // 🔧 تأكد من استخدام navigate كدالة
     if (typeof navigate === 'function') {
       navigate(`/product/${product.id}`);
     } else {
       console.error('❌ navigate ليست دالة:', navigate);
-      // بديل: استخدام window.location
       window.location.href = `/product/${product.id}`;
     }
   };
 
-  // ✅ دالة لإضافة إلى السلة
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log(`🛒 أضيف المنتج ${product.id} إلى السلة`);
-    // هنا يمكنك إضافة منطق إضافة المنتج للسلة
+    
+    if (localLoading) return;
+    
+    console.log(`🛒 إضافة المنتج ${product.id} إلى السلة`);
+    
+    setLocalLoading(true);
+    setAddedRecently(false);
+    
+    try {
+      const result = await addToCart(product.id, 1);
+      
+      if (result.success) {
+        console.log('✅ تمت الإضافة بنجاح:', result.data);
+        setAddedRecently(true);
+        
+        // إعادة تعيين حالة "تمت الإضافة" بعد 2 ثانية
+        setTimeout(() => setAddedRecently(false), 2000);
+        
+        // يمكنك إضافة Toast هنا بدلاً من alert
+        // toast.success(`تم إضافة ${product.name} إلى السلة`);
+      } else {
+        console.error('❌ فشلت الإضافة:', result.error);
+        // toast.error(result.error || 'فشلت العملية');
+      }
+    } catch (error) {
+      console.error('❌ خطأ غير متوقع:', error);
+      // toast.error('حدث خطأ غير متوقع');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
-  // ✅ دالة للمفضلة
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
     console.log(`❤️ أضيف المنتج ${product.id} إلى المفضلة`);
   };
 
-  // ✅ دالة لتنسيق السعر
   const formatPrice = (price: number): string => {
     return `$${price.toFixed(2)}`;
   };
 
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+
+  // إعادة تعيين حالة الإضافة إذا تغير المنتج
+  useEffect(() => {
+    setAddedRecently(false);
+    setLocalLoading(false);
+  }, [product.id]);
 
   return (
     <div 
@@ -114,12 +146,33 @@ function ProductCard({ product }: ProductCardProps) {
         >
           <Button 
             size="sm" 
-            className="bg-white text-black hover:bg-gray-100 shadow-md"
+            className={`bg-white text-black hover:bg-gray-100 shadow-md transition-all duration-200 ${
+              addedRecently ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''
+            }`}
             onClick={handleAddToCart}
+            disabled={localLoading || isLoading}
           >
-            <ShoppingCart size={16} className="mr-2" />
-            أضف إلى السلة
+            {localLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                جاري الإضافة...
+              </span>
+            ) : addedRecently ? (
+              <>
+                <ShoppingCart size={16} className="mr-2" />
+                تمت الإضافة!
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={16} className="mr-2" />
+                أضف إلى السلة
+              </>
+            )}
           </Button>
+          
           <Button 
             size="sm" 
             variant="outline" 
@@ -179,11 +232,32 @@ function ProductCard({ product }: ProductCardProps) {
           
           <Button 
             size="sm" 
-            className="bg-black hover:bg-gray-800 rounded-full px-4"
+            className={`rounded-full px-4 transition-all duration-200 ${
+              addedRecently 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-black hover:bg-gray-800'
+            }`}
             onClick={handleAddToCart}
+            disabled={localLoading || isLoading}
           >
-            <ShoppingCart size={16} className="mr-2" />
-            أضف
+            {localLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+              </span>
+            ) : addedRecently ? (
+              <>
+                <ShoppingCart size={16} className="mr-2 fill-white" />
+                ✓
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={16} className="mr-2" />
+                أضف
+              </>
+            )}
           </Button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 // app/cart/components/CartItemCard.tsx
 "use client";
 
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, Trash } from "lucide-react";
 import { useState } from "react";
 
 interface CartItem {
@@ -69,7 +69,7 @@ export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartI
             className="text-gray-400 hover:text-red-500"
             aria-label={`Remove ${item.name} from cart`}
           >
-            <X size={20} />
+           <Trash />
           </button>
         </div>
 

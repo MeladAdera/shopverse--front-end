@@ -22,12 +22,11 @@ export function ReviewCard({
   const [error, setError] = useState<string | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
   
-  // States for delete functionality
+  // 🔥 States for delete functionality
   const [deletingReviewId, setDeletingReviewId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   
-  // ✅ لعرض أول 6 تقييمات فقط
   const [showLimited, setShowLimited] = useState(!showAll);
   const displayedReviews = showLimited ? reviews.slice(0, 6) : reviews;
 
@@ -48,6 +47,7 @@ export function ReviewCard({
 
     try {
       const reviewsData = await reviewService.getProductReviews(productId);
+      console.log('📊 Reviews fetched:', reviewsData); // 🔥 تحقق من البيانات
       setReviews(reviewsData);
     } catch (err: any) {
       console.error('❌ خطأ في جلب التقييمات:', err);
@@ -57,7 +57,6 @@ export function ReviewCard({
     }
   };
 
-  // ✅ دالة لتحويل التاريخ
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -71,47 +70,51 @@ export function ReviewCard({
     }
   };
 
-  // ✅ حساب متوسط التقييم
   const averageRating = reviews.length > 0
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
-  // 🔥 دالة لبدء عملية الحذف
+  // 🔥 1. دالة لبدء عملية الحذف (فتح نافذة التأكيد)
   const handleDeleteClick = (reviewId: number) => {
     setDeletingReviewId(reviewId);
     setDeleteError(null);
     setDeleteSuccess(null);
   };
 
-  // 🔥 دالة لتأكيد الحذف
+  // 🔥 2. دالة لتأكيد الحذف (استدعاء السيرفس)
   const confirmDelete = async () => {
     if (!deletingReviewId) return;
 
     try {
+      console.log(`🗑️ تأكيد حذف التقييم: ${deletingReviewId}`);
       
-      // تحديث القائمة بعد الحذف
-      setReviews(reviews.filter(review => review.id !== deletingReviewId));
-      setDeleteSuccess('Review deleted successfully');
+      // 🔥 استدعاء دالة الحذف من السيرفس
+      const result = await reviewService.deleteReview(deletingReviewId);
       
-      // إخفاء نموذج التأكيد بعد ثانية
-      setTimeout(() => {
-        setDeletingReviewId(null);
-        setDeleteSuccess(null);
-      }, 1500);
+      if (result.success) {
+        // 🔥 تحديث القائمة بعد الحذف
+        setReviews(reviews.filter(review => review.id !== deletingReviewId));
+        setDeleteSuccess(result.message || 'تم حذف التقييم بنجاح');
+        
+        // إخفاء نافذة التأكيد بعد ثانية
+        setTimeout(() => {
+          setDeletingReviewId(null);
+          setDeleteSuccess(null);
+        }, 1500);
+      }
     } catch (error: any) {
-      console.error('Error deleting review:', error);
+      console.error('❌ Error deleting review:', error);
       setDeleteError(error.message || 'Failed to delete review');
     }
   };
 
-  // 🔥 دالة لإلغاء الحذف
+  // 🔥 3. دالة لإلغاء الحذف
   const cancelDelete = () => {
     setDeletingReviewId(null);
     setDeleteError(null);
     setDeleteSuccess(null);
   };
 
-  // ✅ عرض حالة التحميل
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -141,7 +144,6 @@ export function ReviewCard({
     );
   }
 
-  // ✅ عرض حالة الخطأ
   if (error) {
     return (
       <div className="text-center py-8">
@@ -155,7 +157,7 @@ export function ReviewCard({
 
   return (
     <div className="space-y-8">
-      {/* نموذج التقييم (Modal) */}
+      {/* نموذج التقييم */}
       {showReviewForm && productId && (
         <ReviewForm
           productId={productId}
@@ -165,7 +167,7 @@ export function ReviewCard({
         />
       )}
 
-      {/* 🔥 نموذج تأكيد الحذف */}
+      {/* 🔥 نافذة تأكيد الحذف */}
       {deletingReviewId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
@@ -234,33 +236,29 @@ export function ReviewCard({
       {/* إحصائيات التقييمات */}
       <div className="bg-gray-50 rounded-2xl p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* متوسط التقييم */}
           <div className="text-center md:text-left">
             <div className="text-5xl font-bold mb-2">
               {averageRating.toFixed(1)}
             </div>
             <div className="flex justify-center md:justify-start mb-2">
-              {[...Array(5)].map((_, i) => {
-                return (
-                  <Star
-                    key={i}
-                    className={`h-6 w-6 ${
-                      i < Math.floor(averageRating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : i < averageRating
-                        ? "fill-yellow-400/50 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                );
-              })}
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-6 w-6 ${
+                    i < Math.floor(averageRating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : i < averageRating
+                      ? "fill-yellow-400/50 text-yellow-400"
+                      : "text-gray-300"
+                  }`}
+                />
+              ))}
             </div>
             <p className="text-gray-600">
               Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}
             </p>
           </div>
 
-          {/* تفصيل النجوم */}
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map((stars) => {
               const count = reviews.filter(r => Math.round(r.rating) === stars).length;
@@ -288,7 +286,6 @@ export function ReviewCard({
         </div>
       </div>
 
-      {/* ✅ عرض حالة عدم وجود تقييمات */}
       {reviews.length === 0 ? (
         <div className="text-center py-12">
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 inline-block">
@@ -307,18 +304,17 @@ export function ReviewCard({
         </div>
       ) : (
         <>
-          {/* قائمة التقييمات */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {displayedReviews.map((review) => (
               <div 
                 key={review.id} 
                 className="bg-white border border-gray-400 rounded-xl p-6 hover:shadow-md transition-shadow relative"
               >
-                {/* 🔥 زر الحذف (فقط للمالك) */}
-                {currentUserId === review.user_id && (
+                {/* 🔥 زر الحذف - يظهر فقط للمستخدم صاحب التقييم */}
+                {currentUserId && review.user_id && currentUserId === review.user_id && (
                   <button
                     onClick={() => handleDeleteClick(review.id)}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="absolute top-1 right-4  text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete review"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,7 +323,6 @@ export function ReviewCard({
                   </button>
                 )}
                 
-                {/* Header مع الاسم والتاريخ */}
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h4 className="font-semibold text-gray-900">{review.user_name}</h4>
@@ -335,7 +330,6 @@ export function ReviewCard({
                       <p className="text-sm text-gray-500">{review.user_email}</p>
                     )}
                     
-                    {/* النجوم */}
                     <div className="flex items-center gap-1 mt-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
@@ -351,16 +345,13 @@ export function ReviewCard({
                     </div>
                   </div>
                   
-                  {/* التاريخ */}
                   <span className="text-sm text-gray-500">
                     {formatDate(review.created_at)}
                   </span>
                 </div>
                 
-                {/* نص التعليق */}
                 <p className="text-gray-600 leading-relaxed">{review.comment}</p>
                 
-                {/* Read More إذا التعليق طويل */}
                 {review.comment.length > 200 && (
                   <button className="text-sm text-blue-600 font-medium mt-3 hover:text-blue-800">
                     Read more
@@ -370,7 +361,6 @@ export function ReviewCard({
             ))}
           </div>
 
-          {/* زر عرض المزيد إذا كانت هناك أكثر من 6 تقييمات */}
           {reviews.length > 6 && showLimited && (
             <div className="text-center mt-8">
               <button 
@@ -382,7 +372,6 @@ export function ReviewCard({
             </div>
           )}
 
-          {/* زر كتابة تقييم */}
           <div className="mt-8 text-center">
             <button
               onClick={() => setShowReviewForm(true)}

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { orderService } from '../services/order.service';
+import { showToast } from '../utils/toast';
 
 interface ShippingFormData {
   shipping_address: string;
@@ -30,27 +31,50 @@ export default function CheckoutPage() {
   // Handle form submission and order creation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data
+    if (!formData.shipping_address.trim()) {
+      showToast.error('Please enter your shipping address');
+      return;
+    }
+    
+    if (!formData.shipping_city.trim()) {
+      showToast.error('Please enter your city');
+      return;
+    }
+
     setIsLoading(true);
+    const loadingToast = showToast.loading('Creating your order...');
 
     try {
-      // 1. Validate form data
-      if (!formData.shipping_address || !formData.shipping_city) {
-        alert('Please enter address and city');
-        return;
-      }
-
-      // 2. Create order through order service
+      // Create order through order service
       const response = await orderService.createOrder(formData);
       
+      // Dismiss loading toast
+      showToast.dismiss(loadingToast);
+      
       if (response.success) {
-        // 3. Redirect to order confirmation page
-        navigate(`/orders/${response.data.order_id}`);
+        // Show success message
+        showToast.success('Order created successfully!');
+        
+        // Redirect to order confirmation page after a short delay
+        setTimeout(() => {
+          navigate(`/orders/${response.data.order_id}`);
+        }, 1500);
       } else {
-        alert('Error creating order');
+        showToast.error(response.message || 'Failed to create order');
       }
     } catch (error: any) {
+      // Dismiss loading toast
+      showToast.dismiss(loadingToast);
+      
+      // Show error message
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'An error occurred while processing your order';
+      showToast.error(errorMessage);
+      
       console.error('Checkout error:', error);
-      alert(error.message || 'Payment process error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -77,9 +101,10 @@ export default function CheckoutPage() {
                   name="shipping_address"
                   value={formData.shipping_address}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Street, District, Building Number"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -93,9 +118,10 @@ export default function CheckoutPage() {
                   name="shipping_city"
                   value={formData.shipping_city}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Example: Riyadh"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -109,8 +135,9 @@ export default function CheckoutPage() {
                   name="shipping_phone"
                   value={formData.shipping_phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="+9665XXXXXXXX"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -119,9 +146,19 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-8 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+              className="mt-8 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              {isLoading ? 'Creating Order...' : 'Confirm Order'}
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                'Confirm Order'
+              )}
             </button>
           </form>
         </div>
@@ -132,16 +169,16 @@ export default function CheckoutPage() {
           
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>$150.00</span>
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">$150.00</span>
             </div>
             <div className="flex justify-between">
-              <span>Shipping</span>
-              <span>$10.00</span>
+              <span className="text-gray-600">Shipping</span>
+              <span className="font-medium">$10.00</span>
             </div>
             <div className="flex justify-between">
-              <span>Discount</span>
-              <span className="text-green-600">-$15.00</span>
+              <span className="text-gray-600">Discount</span>
+              <span className="font-medium text-green-600">-$15.00</span>
             </div>
             
             <hr className="my-4" />

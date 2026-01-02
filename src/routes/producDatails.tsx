@@ -1,4 +1,3 @@
-
 // src/routes/producDatails.tsx
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -20,6 +19,7 @@ import Footer from "../components/ui/Footer";
 import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product';
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCart } from "@/hooks/useCart"; // ⬅️ أضف هذا
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,8 +35,11 @@ const ProductPage: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>("Black");
   const [selectedSize, setSelectedSize] = useState<string>("Medium"); 
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'faq'>('details');
-    const { userId } = useCurrentUser();
-
+  const { userId } = useCurrentUser();
+  
+  // 🔥 **أضف هذين السطرين**
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart, isLoading: isAddingToCart } = useCart();
   
   // 🔧 **الـ 4 ألوان الأساسية**
   const baseColors = ["Black", "Blue", "Red", "Green"];
@@ -93,7 +96,39 @@ const ProductPage: React.FC = () => {
 </svg>
   );
 
-   // جلب بيانات المنتج
+   // 🔥 **دالة الإضافة للسلة**
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    if (!selectedColor || !selectedSize) {
+      alert('Please select both color and size');
+      return;
+    }
+
+    console.log('🛒 Adding to cart:', {
+      productId: product.id,
+      name: product.name,
+      color: selectedColor,
+      size: selectedSize,
+      quantity: quantity
+    });
+
+    try {
+      const result = await addToCart(product.id, quantity);
+      
+      if (result.success) {
+        alert(`✅ ${product.name} added to cart!\nColor: ${selectedColor}\nSize: ${selectedSize}\nQuantity: ${quantity}`);
+        setQuantity(1); // إعادة تعيين الكمية
+      } else {
+        alert(`❌ Failed to add to cart: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add to cart. Please try again.');
+    }
+  };
+
+  // جلب بيانات المنتج
   useEffect(() => {
     const fetchProductData = async () => {
       if (!productId) {
@@ -374,24 +409,35 @@ const ProductPage: React.FC = () => {
     </div>
   </div>
 
-  {/* Buttons */}
+  {/* 🔥 **Buttons - المعدلة** */}
   <div className="pt-2">
     <div className="flex flex-row sm:flex-row gap-3 sm:gap-4">
       
-      {/* Quantity Button */}
-      <Button 
-        variant="outline" 
-        className="rounded-full border-2 flex items-center justify-between 
-                  py-3 sm:py-4 px-4 sm:px-6 
-                  h-11 sm:h-12
-                  w-full sm:w-auto sm:flex-1"
-      >
-        <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
-        <span className="text-base sm:text-lg font-medium">1</span>
-        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-      </Button>
+      {/* Quantity Button - Fixed */}
+      <div className="rounded-full border-2 flex items-center justify-between 
+                    py-3 sm:py-4 px-4 sm:px-6 
+                    h-11 sm:h-12
+                    w-full sm:w-auto sm:flex-1
+                    border-gray-300">
+        <button
+          onClick={() => setQuantity(q => Math.max(1, q - 1))}
+          disabled={quantity <= 1}
+          className="hover:bg-gray-100 rounded-full p-1 disabled:opacity-30"
+        >
+          <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+        
+        <span className="text-base sm:text-lg font-medium">{quantity}</span>
+        
+        <button
+          onClick={() => setQuantity(q => q + 1)}
+          className="hover:bg-gray-100 rounded-full p-1"
+        >
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      </div>
 
-      {/* Add to Cart Button */}
+      {/* Add to Cart Button - Updated */}
       <Button 
         className="bg-black text-white hover:bg-gray-800 
                   h-11 sm:h-12 
@@ -399,22 +445,29 @@ const ProductPage: React.FC = () => {
                   rounded-full 
                   w-full sm:w-auto sm:flex-2
                   flex items-center justify-center gap-2"
-        onClick={() => {
-          console.log('🛒 Adding to cart:', {
-            productId: product.id,
-            name: product.name,
-            color: selectedColor,
-            size: selectedSize,
-            quantity: 1
-          });
-          alert(`Added to cart!\nColor: ${selectedColor}\nSize: ${selectedSize}`);
-        }}
+        onClick={handleAddToCart}
+        disabled={isAddingToCart || !selectedColor || !selectedSize}
       >
-        <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
-        Add to Cart
+        {isAddingToCart ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            Adding...
+          </>
+        ) : (
+          <>
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+            Add to Cart
+          </>
+        )}
       </Button>
-
     </div>
+    
+    {/* Validation message */}
+    {(!selectedColor || !selectedSize) && (
+      <p className="text-red-500 text-sm mt-2">
+        ⚠️ Please select both color and size
+      </p>
+    )}
   </div>
   
 

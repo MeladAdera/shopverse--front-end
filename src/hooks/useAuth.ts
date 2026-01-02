@@ -1,5 +1,19 @@
-// src/hooks/useAuth.ts
-import { useAuth } from '../context/AuthContext';
+// 📁 src/hooks/useAuth.ts
+import { useAuth as useBaseAuth } from '../context/AuthContext'; // 🛠️ تغيير الاسم
 
-// This is just a re-export for cleaner imports
-export { useAuth };
+// 🛠️ إعادة تصدير مع تحسينات
+export const useAuth = () => {
+  const context = useBaseAuth(); // 🛠️ استخدام الاسم الجديد
+  
+  const hasRole = (role: string): boolean => context.user?.role === role;
+  const isActive = (): boolean => context.user?.active !== false;
+  const canAccessAdmin = context.isAdmin && context.isAuthenticated;
+  
+  return {
+    ...context,
+    hasRole,
+    isActive,
+    canAccessAdmin,
+  };
+};
+

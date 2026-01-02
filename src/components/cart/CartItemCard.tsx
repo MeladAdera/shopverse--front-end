@@ -25,6 +25,7 @@ interface CartItemCardProps {
 export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartItemCardProps) {
   const [localQuantity, setLocalQuantity] = useState(item.quantity);
 
+  // Decrease item quantity, minimum 1
   const handleDecrease = () => {
     if (localQuantity > 1) {
       const newQty = localQuantity - 1;
@@ -33,19 +34,21 @@ export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartI
     }
   };
 
+  // Increase item quantity
   const handleIncrease = () => {
     const newQty = localQuantity + 1;
     setLocalQuantity(newQty);
     onUpdateQuantity(item.id, newQty);
   };
 
+  // Remove item from cart
   const handleRemove = () => {
     onRemove(item.id);
   };
 
   return (
     <div className="flex gap-4 p-4 bg-white border-b last:border-b-0">
-      {/* الصورة */}
+      {/* Product Image */}
       <div className="w-24 h-24 md:w-28 md:h-28 bg-gray-100 rounded overflow-hidden shrink-0">
         <img
           src={item.image}
@@ -54,28 +57,28 @@ export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartI
         />
       </div>
 
-      {/* المعلومات - كل شيء في عمود واحد */}
+      {/* Product Information - All in one column */}
       <div className="flex-1">
-        {/* الصف الأول: الاسم + زر الحذف */}
+        {/* First Row: Product Name + Remove Button */}
         <div className="flex justify-between items-start mb-2">
-          {/* الاسم */}
+          {/* Product Name */}
           <h3 className="text-lg font-bold text-gray-900">
             {item.name}
           </h3>
           
-          {/* زر الحذف - مقابل الاسم */}
+          {/* Remove Button - Aligned with name */}
           <button
             onClick={handleRemove}
             className="text-gray-400 hover:text-red-500"
             aria-label={`Remove ${item.name} from cart`}
           >
-           <Trash />
+            <Trash />
           </button>
         </div>
 
-        {/* الصف الثاني: المقاس واللون */}
+        {/* Second Row: Size and Color */}
         <div className="mb-4">
-          <div className="flex flex-col   text-gray-600">
+          <div className="flex flex-col text-gray-600">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Size:</span>
               <span className="text-sm">{item.size}</span>
@@ -87,9 +90,9 @@ export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartI
           </div>
         </div>
 
-        {/* الصف الثالث: السعر + عداد الكمية */}
+        {/* Third Row: Price + Quantity Counter */}
         <div className="flex justify-between items-center">
-          {/* السعر */}
+          {/* Price Display */}
           <div className="text-right">
             <div className="text-xl font-bold text-gray-900">
               ${(item.price * localQuantity).toFixed(2)}
@@ -101,7 +104,7 @@ export default function CartItemCard({ item, onUpdateQuantity, onRemove }: CartI
             )}
           </div>
 
-          {/* عداد الكمية - مقابل السعر */}
+          {/* Quantity Counter - Aligned with price */}
           <div className="flex items-center border border-gray-300 rounded mb:gap-2">
             <button
               onClick={handleDecrease}

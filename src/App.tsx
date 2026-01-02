@@ -1,6 +1,6 @@
-// src/App.tsx
+// 📁 src/App.tsx
 import { Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext'; // ✅ Fixed import
+import { AuthProvider } from './context/AuthContext';
 import Header from "./components/ui/header/Header";
 import Homepage from "./routes/Homepage";
 import ProductPage from "./routes/producDatails";
@@ -10,7 +10,10 @@ import AllReviewsPage from './routes/AllReviewsPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import OrdersPage from './pages/OrdersPage'; 
+import OrderDetailsPage from './pages/OrderDetailsPage'; 
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import CheckoutPage from './pages/CheckoutPage'; 
 
 function App() {
   return (
@@ -26,6 +29,7 @@ function App() {
           <Route path="/category/:id" element={<Page />} />
           <Route path="/product/:id/reviews" element={<AllReviewsPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} /> 
           
           {/* Protected Routes */}
           <Route 
@@ -41,10 +45,16 @@ function App() {
             path="/orders" 
             element={
               <ProtectedRoute>
-                <div className="container mx-auto px-4 py-8">
-                  <h1 className="text-3xl font-bold">My Orders</h1>
-                  <p className="text-gray-600 mt-4">Your orders will appear here.</p>
-                </div>
+                <OrdersPage /> 
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/orders/:id" 
+            element={
+              <ProtectedRoute>
+                <OrderDetailsPage /> 
               </ProtectedRoute>
             } 
           />

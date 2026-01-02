@@ -14,7 +14,7 @@ export interface OrderItem {
 export interface Order {
   id: number;
   user_id: number;
-  total_amount: string; // Decimal as string
+  total_amount: string; // ✅ تبقى string لأن الـ backend يرسلها كـ string
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   shipping_address: string;
   shipping_city: string;
@@ -22,24 +22,54 @@ export interface Order {
   notes?: string;
   created_at: string;
   updated_at: string;
-  items_count: string; // From SQL COUNT()
+  items_count: string; // ✅ تبقى string لأن الـ backend يرسلها كـ string
   items?: OrderItem[]; // Optional: full items when getting single order
 }
 
-export interface OrderResponse {
+// 📦 Response لإنشاء order جديد (Checkout)
+export interface CreateOrderResponse {
   success: boolean;
-  message?: string;
-  data?: Order | Order[];
-  pagination?: Pagination;
+  message: string;
+  timestamp: string;
+  data: {
+    order_id: number;    // ⚠️ مختلف عن id في Order interface
+    total_amount: string;
+    status: string;
+    created_at: string;
+  };
 }
 
-export interface OrdersResponse {
+// 📦 Response لجلب جميع الـ orders
+export interface GetOrdersResponse {
   success: boolean;
-  message?: string;
+  message: string;
+  timestamp: string;
   data: {
-    orders: Order[];
-    pagination: Pagination;
+    orders: Order[];     // ⚠️ هنا Order فيها id (ليست order_id)
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   };
+}
+
+// 📦 Response لجلب order واحد
+export interface GetOrderResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  data: Order & {        // Order كامل مع items
+    items: OrderItem[];
+  };
+}
+
+// 📦 Response لإلغاء order
+export interface CancelOrderResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
 }
 
 export interface Pagination {

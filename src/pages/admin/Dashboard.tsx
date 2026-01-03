@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 import adminService from '../../services/admin.service';
 
-// 🛠️ نحدد هيكل البيانات الفعلي
+// 🛠️ Define actual data structure
 interface DashboardStatsResponse {
   users: {
     total: number;
-    // ... قد تكون هناك خصائص أخرى
+    // ... may have other properties
   };
   products: {
     total: number;
@@ -57,7 +57,7 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // 🛠️ نستخدم try-catch للتعامل مع الأخطاء بشكل أفضل
+      // 🛠️ Use try-catch for better error handling
       const [statsData, ordersData] = await Promise.all([
         adminService.getDashboardStats(),
         adminService.getOrders(1, 5)
@@ -66,11 +66,11 @@ const AdminDashboard: React.FC = () => {
       console.log('📊 Dashboard stats received:', statsData);
       console.log('📦 Recent orders received:', ordersData);
 
-      // 🛠️ معالجة البيانات المختلفة
+      // 🛠️ Process different data structures
       if (statsData) {
         setStats(statsData);
         
-        // 🛠️ معالجة recent_orders بشكل آمن
+        // 🛠️ Safely handle recent_orders
         if (statsData.recent_orders && Array.isArray(statsData.recent_orders)) {
           setRecentOrders(statsData.recent_orders);
         } else if (ordersData.data && Array.isArray(ordersData.data)) {
@@ -80,16 +80,16 @@ const AdminDashboard: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Error fetching dashboard data:', err);
-      setError(err.response?.data?.message || err.message || 'فشل تحميل البيانات');
+      setError(err.response?.data?.message || err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-SA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'SAR',
+      currency: 'USD',
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -97,7 +97,7 @@ const AdminDashboard: React.FC = () => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return new Intl.DateTimeFormat('ar-SA', {
+      return new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -107,10 +107,10 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // 🛠️ معالجة بيانات الإحصائيات بشكل آمن
+  // 🛠️ Safely process statistics data
   const statCards = [
     {
-      title: 'إجمالي المستخدمين',
+      title: 'Total Users',
       value: stats?.users?.total?.toLocaleString() || stats?.summary?.total_users?.toLocaleString() || '0',
       icon: <Users className="text-blue-500" size={24} />,
       change: '+12%',
@@ -118,7 +118,7 @@ const AdminDashboard: React.FC = () => {
       color: 'bg-blue-50'
     },
     {
-      title: 'إجمالي الطلبات',
+      title: 'Total Orders',
       value: stats?.orders?.total?.toLocaleString() || stats?.summary?.total_orders?.toLocaleString() || '0',
       icon: <ShoppingBag className="text-green-500" size={24} />,
       change: '+8%',
@@ -126,7 +126,7 @@ const AdminDashboard: React.FC = () => {
       color: 'bg-green-50'
     },
     {
-      title: 'إجمالي المنتجات',
+      title: 'Total Products',
       value: stats?.products?.total?.toLocaleString() || stats?.summary?.total_products?.toLocaleString() || '0',
       icon: <Package className="text-purple-500" size={24} />,
       change: '+5%',
@@ -134,7 +134,7 @@ const AdminDashboard: React.FC = () => {
       color: 'bg-purple-50'
     },
     {
-      title: 'إجمالي الإيرادات',
+      title: 'Total Revenue',
       value: formatCurrency(stats?.revenue?.total || stats?.summary?.total_revenue || 0),
       icon: <DollarSign className="text-yellow-500" size={24} />,
       change: '+15%',
@@ -143,13 +143,13 @@ const AdminDashboard: React.FC = () => {
     }
   ];
 
-  // 🛠️ إضافة حالة التحميل بشكل أفضل
+  // 🛠️ Improved loading state
   if (loading) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-          <p className="text-gray-600">جاري تحميل البيانات...</p>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Loading data...</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -167,13 +167,13 @@ const AdminDashboard: React.FC = () => {
         <div className="flex items-center">
           <AlertCircle className="text-red-500 mr-3" size={24} />
           <div>
-            <h3 className="text-lg font-bold text-red-800">حدث خطأ</h3>
+            <h3 className="text-lg font-bold text-red-800">Error Occurred</h3>
             <p className="text-red-600 mt-1">{error}</p>
             <button
               onClick={fetchDashboardData}
               className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              المحاولة مرة أخرى
+              Try Again
             </button>
           </div>
         </div>
@@ -183,13 +183,13 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* العنوان */}
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-        <p className="text-gray-600">مرحباً بعودتك! إليك نظرة عامة على متجرك.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600">Welcome back! Here's an overview of your store.</p>
       </div>
 
-      {/* بطاقات الإحصائيات */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <div key={index} className={`${stat.color} p-6 rounded-xl shadow-sm border`}>
@@ -209,22 +209,22 @@ const AdminDashboard: React.FC = () => {
                 <TrendingDown className="text-red-500 mr-1" size={16} />
               )}
               <span className={`text-sm ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                {stat.change} عن الشهر الماضي
+                {stat.change} from last month
               </span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* الطلبات الحديثة */}
+      {/* Recent Orders */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">آخر الطلبات</h2>
+          <h2 className="text-xl font-bold">Recent Orders</h2>
           <button 
             onClick={() => window.location.href = '/admin/orders'}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
           >
-            عرض الكل →
+            View All →
           </button>
         </div>
         
@@ -233,18 +233,18 @@ const AdminDashboard: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-right py-3 px-4 text-gray-600 font-medium">رقم الطلب</th>
-                  <th className="text-right py-3 px-4 text-gray-600 font-medium">العميل</th>
-                  <th className="text-right py-3 px-4 text-gray-600 font-medium">المبلغ</th>
-                  <th className="text-right py-3 px-4 text-gray-600 font-medium">الحالة</th>
-                  <th className="text-right py-3 px-4 text-gray-600 font-medium">التاريخ</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-medium">Order ID</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-medium">Customer</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-medium">Amount</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-medium">Status</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-medium">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">#{order.id}</td>
-                    <td className="py-3 px-4">{order.customer_name || 'غير محدد'}</td>
+                    <td className="py-3 px-4">{order.customer_name || 'Not specified'}</td>
                     <td className="py-3 px-4 font-medium">${order.total_amount || '0'}</td>
                     <td className="py-3 px-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${
@@ -254,11 +254,11 @@ const AdminDashboard: React.FC = () => {
                         order.status === 'pending' ? 'bg-gray-100 text-gray-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {order.status === 'pending' ? 'قيد الانتظار' :
-                         order.status === 'processing' ? 'قيد المعالجة' :
-                         order.status === 'shipped' ? 'تم الشحن' :
-                         order.status === 'delivered' ? 'تم التسليم' :
-                         'ملغي'}
+                        {order.status === 'pending' ? 'Pending' :
+                         order.status === 'processing' ? 'Processing' :
+                         order.status === 'shipped' ? 'Shipped' :
+                         order.status === 'delivered' ? 'Delivered' :
+                         'Cancelled'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-gray-500">{formatDate(order.created_at)}</td>
@@ -270,7 +270,7 @@ const AdminDashboard: React.FC = () => {
         ) : (
           <div className="text-center py-8">
             <ShoppingBag className="mx-auto text-gray-400" size={48} />
-            <p className="text-gray-500 mt-4">لا توجد طلبات حديثة</p>
+            <p className="text-gray-500 mt-4">No recent orders</p>
           </div>
         )}
       </div>

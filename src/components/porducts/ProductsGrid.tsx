@@ -1,4 +1,4 @@
-// 📁 components/products/ProductsGrid.tsx (تم التصحيح)
+// 📁 components/products/ProductsGrid.tsx (Fixed)
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Grid, List } from "lucide-react";
@@ -8,10 +8,10 @@ import { useFilteredData } from '@/hooks/useFilteredData';
 import ImageService from '@/lib/imageService';
 
 function ProductsGrid() {
-    const { id } = useParams<{ id?: string }>();
+  const { id } = useParams<{ id?: string }>();
   const categoryId = id ? parseInt(id) : undefined;
   
-  // 🎯 استخدم الهوك المدمج
+  // 🎯 Use the integrated hook
   const { 
     products: filteredProducts, 
     loading, 
@@ -25,7 +25,7 @@ function ProductsGrid() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(9);
 
-  // 🔄 جلب البيانات بناءً على الفلاتر
+  // 🔄 Fetch data based on filters
   useEffect(() => {
     console.log('🔍 [ProductsGrid] Effect triggered:', { 
       categoryId, 
@@ -33,19 +33,19 @@ function ProductsGrid() {
       productsCount: filteredProducts.length 
     });
     
-    // لا نحتاج لجلب البيانات يدوياً، useFilteredData سيفعلها تلقائياً
+    // No need to manually fetch data, useFilteredData handles it automatically
   }, [categoryId, filters, filteredProducts.length]);
 
-  // 📄 تحويل الصور بعد الجلب
+  // 📄 Transform images after fetching
   const transformedProducts = ImageService.transformProducts(filteredProducts);
   
-  // 📄 حساب الصفحات
+  // 📄 Calculate pages
   const indexOfLastProduct = currentPage * itemsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - itemsPerPage;
   const currentProducts = transformedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(transformedProducts.length / itemsPerPage);
 
-  // 🔄 تغيير الصفحة
+  // 🔄 Change page
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -53,63 +53,63 @@ function ProductsGrid() {
     }
   };
 
-  // 🔄 إعادة تحميل البيانات
+  // 🔄 Reload data
   const handleRetry = () => {
-    console.log('🔄 طلب إعادة تحميل البيانات');
-    // يمكن إضافة وظيفة إعادة الجلب هنا إذا لزم
+    console.log('🔄 Requesting data reload');
+    // Can add refetch function here if needed
   };
 
-  // معلومات الفلاتر النشطة
+  // Active filters information
   const activeFilters = getFilterSummary();
   const hasCategoryId = !!categoryId;
 
-  // ⏳ التحميل
+  // ⏳ Loading
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-black mb-4"></div>
-          <p className="text-gray-600">جاري تحميل المنتجات...</p>
+          <p className="text-gray-600">Loading products...</p>
         </div>
       </div>
     );
   }
 
-  // ❌ خطأ
+  // ❌ Error
   if (error) {
     return (
       <div className="text-center py-12">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 inline-block">
-          <h3 className="text-xl font-semibold text-red-800 mb-2">حدث خطأ</h3>
+          <h3 className="text-xl font-semibold text-red-800 mb-2">Error</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={handleRetry}
             className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
           >
-            حاول مرة أخرى
+            Try Again
           </button>
         </div>
       </div>
     );
   }
 
-  // 📭 لا توجد منتجات
+  // 📭 No products
   if (transformedProducts.length === 0 && !loading) {
     return (
       <div className="text-center py-12">
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 inline-block">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">لا توجد منتجات</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No Products</h3>
           <p className="text-gray-600">
             {hasCategoryId || activeFilters.length > 0 
-              ? "لا توجد منتجات تطابق الفلاتر المحددة" 
-              : "لم يتم العثور على أي منتجات"
+              ? "No products match the selected filters" 
+              : "No products found"
             }
           </p>
           <button
             onClick={handleRetry}
             className="mt-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
           >
-            تحديث
+            Refresh
           </button>
         </div>
       </div>
@@ -118,15 +118,15 @@ function ProductsGrid() {
 
   return (
     <div className="space-y-8">
-      {/* Header مع معلومات الفلاتر */}
+      {/* Header with filter information */}
       <div className="space-y-4">
-        {/* معلومات الفلاتر النشطة */}
+        {/* Active filters display */}
         {activeFilters.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-blue-800">🎯 الفلاتر المطبقة</h3>
+              <h3 className="text-lg font-semibold text-blue-800">🎯 Active Filters</h3>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                {activeFilters.length} فلتر
+                {activeFilters.length} filter(s)
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -142,17 +142,17 @@ function ProductsGrid() {
           </div>
         )}
 
-        {/* العنوان والإحصائيات */}
+        {/* Title and statistics */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-2xl font-bold">
-              {hasCategoryId ? `منتجات التصنيف` : 'جميع المنتجات'}
+              {hasCategoryId ? `Category Products` : 'All Products'}
               {filters.category && <span className="text-gray-600"> - {filters.category}</span>}
             </h2>
             <p className="text-gray-600">
-              عرض {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, transformedProducts.length)} 
-              من أصل {transformedProducts.length} منتج
-              {activeFilters.length > 0 && ' (مفلتر)'}
+              Showing {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, transformedProducts.length)} 
+              of {transformedProducts.length} products
+              {activeFilters.length > 0 && ' (filtered)'}
             </p>
           </div>
           
@@ -175,65 +175,65 @@ function ProductsGrid() {
             
             {/* Sort */}
             <select className="border rounded-lg px-3 py-2">
-              <option>ترتيب حسب: الأكثر شيوعاً</option>
-              <option>السعر: من الأقل إلى الأعلى</option>
-              <option>السعر: من الأعلى إلى الأقل</option>
+              <option>Sort by: Most Popular</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Products Grid */}
-<div className={viewMode === "grid" 
-  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-  : "space-y-6"
-}>
-  {currentProducts.map((product: any) => {
-    // 🔍 تحقق من بيانات المنتج
-    console.log('📦 [ProductsGrid] رسم منتج:', {
-      id: product.id,
-      name: product.name,
-      typeOfId: typeof product.id
-    });
+      <div className={viewMode === "grid" 
+        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        : "space-y-6"
+      }>
+        {currentProducts.map((product: any) => {
+          // 🔍 Check product data
+          console.log('📦 [ProductsGrid] Rendering product:', {
+            id: product.id,
+            name: product.name,
+            typeOfId: typeof product.id
+          });
 
-    if (!product.id) {
-      console.warn('⚠️ [ProductsGrid] منتج بدون ID:', product);
-      return null;
-    }
+          if (!product.id) {
+            console.warn('⚠️ [ProductsGrid] Product without ID:', product);
+            return null;
+          }
 
-    return viewMode === "grid" ? (
-      <ProductCard key={product.id} product={product} />
-    ) : (
-      // 🔧 للعرض كقائمة: استخدم div مع onClick
-      <div 
-        key={product.id} 
-        className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => {
-          console.log('🖱️ النقر على المنتج من القائمة:', product.id);
-        }}
-      >
-        <div className="flex gap-4">
-          <img 
-            src={product.image} 
-            alt={product.name}
-            className="w-32 h-32 object-cover rounded"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.jpg';
-            }}
-          />
-          <div className="flex-1">
-            <h3 className="font-bold text-lg mb-2 hover:text-blue-600 transition-colors">
-              {product.name}
-            </h3>
-            <p className="text-gray-600 text-xl font-semibold mb-1">${product.price}</p>
-            <p className="text-sm text-gray-500 mb-3">{product.category}</p>
-            <p className="text-gray-700 line-clamp-2">{product.description}</p>
-          </div>
-        </div>
+          return viewMode === "grid" ? (
+            <ProductCard key={product.id} product={product} />
+          ) : (
+            // 🔧 For list view: use div with onClick
+            <div 
+              key={product.id} 
+              className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => {
+                console.log('🖱️ Clicked product from list:', product.id);
+              }}
+            >
+              <div className="flex gap-4">
+                <img 
+                  src={product.image} 
+                  alt={product.name}
+                  className="w-32 h-32 object-cover rounded"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.jpg';
+                  }}
+                />
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2 hover:text-blue-600 transition-colors">
+                    {product.name}
+                  </h3>
+                  <p className="text-gray-600 text-xl font-semibold mb-1">${product.price}</p>
+                  <p className="text-sm text-gray-500 mb-3">{product.category}</p>
+                  <p className="text-gray-700 line-clamp-2">{product.description}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
 
       {/* Pagination */}
       {transformedProducts.length > itemsPerPage && (
@@ -246,9 +246,8 @@ function ProductsGrid() {
           onItemsPerPageChange={setItemsPerPage}
         />
       )}
-
     </div>
   );
 }
 
-export default ProductsGrid
+export default ProductsGrid;

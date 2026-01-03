@@ -20,10 +20,8 @@ import ToastProvider from './providers/ToastProvider';
 import { AdminRoute } from './components/admin/AdminRoute';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
-// import AdminDashboard from './pages/admin/Dashboard';
-// import AdminUsersPage from './pages/admin/UsersPage';
-// import AdminOrdersPage from './pages/admin/OrdersPage';
-// import AdminCategoriesPage from './pages/admin/CategoriesPage';
+import AdminUsersPage from './pages/admin/UsersPage';
+import AdminOrdersPage from './pages/admin/OrdersPage';
 
 function App() {
   return (
@@ -113,9 +111,9 @@ const AdminApp = () => {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
-        {/* <Route path="users" element={<AdminUsersPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
-        <Route path="categories" element={<AdminCategoriesPage />} /> */}
+        {/* <Route path="categories" element={<AdminCategoriesPage />} /> */}
       </Route>
     </Routes>
   );

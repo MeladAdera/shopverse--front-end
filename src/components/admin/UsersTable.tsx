@@ -4,7 +4,6 @@ import {
   User, 
   CheckCircle, 
   XCircle, 
-  Edit, 
   Shield,
   Mail,
   Calendar,
@@ -14,9 +13,11 @@ import {
   Unlock,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import type { AdminUser } from '../../types/admin.types';
+import { Link } from 'react-router-dom';
 
 interface UsersTableProps {
   users: AdminUser[];
@@ -32,7 +33,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
   users,
   loading,
   onToggleStatus,
-  onEditUser,
   onPageChange,
   currentPage = 1,
   totalPages = 1
@@ -325,21 +325,20 @@ const UsersTable: React.FC<UsersTableProps> = ({
                               </>
                             ) : (
                               <>
-                                <Unlock className="h-4 w-4 mr-1" />
+                                <Unlock className="h-4 w-4 mr-5" />
                                 Activate
                               </>
                             )}
                           </button>
                           
-                          {onEditUser && (
-                            <button
-                              onClick={() => onEditUser(user)}
-                              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center border border-blue-200"
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </button>
-                          )}
+                          {/* زر View */}
+      <Link
+        to={`/admin/users/${user.id}`}
+        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-800 "
+      >
+        <Eye className="h-4 w-4 mr-1 " />
+       
+      </Link>
                         </div>
                       </td>
                     </tr>

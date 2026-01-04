@@ -5,19 +5,25 @@ import type {
   DashboardStats, 
   AdminUser, 
   AdminOrder,
-  OrdersListResponse,
   OrderStats,
-  UsersListResponse // 🆕 إضافة
+  // 🆕 استيراد الأنواع الجديدة
+  ApiResponse,
+  UsersData,
+  OrdersData,
+  CategoriesData,
+  CreateCategoryRequest,
+  Category,
+  UpdateCategoryRequest
 } from '../types/admin.types';
-
 
 class AdminService {
   // 📊 الحصول على إحصائيات لوحة التحكم
-  async getDashboardStats(): Promise<DashboardStats> {
+  async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
     try {
       const response = await api.get('/admin/dashboard/stats');
-      console.log('📊 Dashboard stats:', response.data);
-      return response.data.data;
+      console.log('📊 Dashboard stats response:', response.data);
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
     } catch (error) {
       console.error('❌ Error fetching dashboard stats:', error);
       throw error;
@@ -25,11 +31,11 @@ class AdminService {
   }
 
   // 👥 الحصول على المستخدمين مع التصفية
-   async getUsers(
+  async getUsers(
     page: number = 1, 
     limit: number = 10, 
-    filters?: UserFilters // 🆕 استخدام النوع الصحيح
-  ): Promise<UsersListResponse> {
+    filters?: UserFilters
+  ): Promise<ApiResponse<UsersData>> {
     try {
       const params: any = {
         page,
@@ -44,16 +50,9 @@ class AdminService {
       const response = await api.get('/admin/users', { params });
       console.log('👥 Users response:', response.data);
       
-      // 🆕 التأكد من أن الاستجابة تطابق UsersListResponse
-      return {
-        users: response.data.data?.users || response.data.users || [],
-        pagination: response.data.data?.pagination || response.data.pagination || {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0
-        }
-      };
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error fetching users:', error);
       throw error;
@@ -61,20 +60,17 @@ class AdminService {
   }
 
   // 🆕 تحديث حالة المستخدم
-  async updateUserStatus(userId: number, active: boolean): Promise<{ 
-    success: boolean; 
-    message: string;
-    data?: any;
-  }> {
+  async updateUserStatus(
+    userId: number, 
+    active: boolean
+  ): Promise<ApiResponse<null>> {
     try {
       const response = await api.put(`/admin/users/${userId}/status`, { active });
       console.log('✅ User status updated:', response.data);
       
-      return {
-        success: true,
-        message: response.data.message || `User ${active ? 'activated' : 'blocked'} successfully`,
-        data: response.data.data
-      };
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error: any) {
       console.error('❌ Error updating user status:', error);
       
@@ -97,7 +93,7 @@ class AdminService {
     limit: number = 10,
     status?: string,
     search?: string
-  ): Promise<OrdersListResponse> {
+  ): Promise<ApiResponse<OrdersData>> {
     try {
       let url = `/admin/orders?page=${page}&limit=${limit}`;
       
@@ -110,19 +106,11 @@ class AdminService {
       }
       
       const response = await api.get(url);
-      console.log('📦 Orders data:', response.data);
+      console.log('📦 Orders response:', response.data);
       
-      // 🆕 التأكد من تنسيق الاستجابة
-      return {
-        orders: response.data.data?.orders || response.data.orders || [],
-        pagination: response.data.data?.pagination || response.data.pagination || {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0
-        },
-        stats: response.data.data?.stats || response.data.stats
-      };
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error fetching orders:', error);
       throw error;
@@ -130,11 +118,14 @@ class AdminService {
   }
 
   // 📦 الحصول على طلب محدد
-  async getOrderById(orderId: number): Promise<AdminOrder> {
+  async getOrderById(orderId: number): Promise<ApiResponse<AdminOrder>> {
     try {
       const response = await api.get(`/admin/orders/${orderId}`);
-      console.log('📦 Order details:', response.data);
-      return response.data.data;
+      console.log('📦 Order details response:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error fetching order:', error);
       throw error;
@@ -142,29 +133,32 @@ class AdminService {
   }
 
   // 🔄 تحديث حالة الطلب
-  async updateOrderStatus(orderId: number, status: string): Promise<{ 
-    success: boolean; 
-    message: string;
-  }> {
+  async updateOrderStatus(
+    orderId: number, 
+    status: string
+  ): Promise<ApiResponse<null>> {
     try {
       const response = await api.put(`/admin/orders/${orderId}/status`, { status });
       console.log('✅ Order status updated:', response.data);
-      return {
-        success: true,
-        message: response.data.message || 'Order status updated successfully'
-      };
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error updating order status:', error);
       throw error;
     }
   }
 
-  // 📊 الحصول على إحصائيات الطلبات
-  async getOrderStats(): Promise<OrderStats> {
+  // 📊 الحصول على إحصائيات الطلبات (إذا كان هناك endpoint منفصل)
+  async getOrderStats(): Promise<ApiResponse<OrderStats>> {
     try {
       const response = await api.get('/admin/orders/stats');
-      console.log('📊 Order stats:', response.data);
-      return response.data.data;
+      console.log('📊 Order stats response:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error fetching order stats:', error);
       throw error;
@@ -172,55 +166,120 @@ class AdminService {
   }
 
   // 🆕 تحديث بيانات المستخدم
-  async updateUser(userId: number, userData: Partial<AdminUser>): Promise<AdminUser> {
+  async updateUser(
+    userId: number, 
+    userData: Partial<AdminUser>
+  ): Promise<ApiResponse<AdminUser>> {
     try {
       const response = await api.put(`/admin/users/${userId}`, userData);
       console.log('✅ User updated:', response.data);
-      return response.data.data;
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error updating user:', error);
       throw error;
     }
   }
 
-  // 🆕 إنشاء مستخدم جديد
-  async createUser(userData: Partial<AdminUser>): Promise<AdminUser> {
-    try {
-      const response = await api.post('/admin/users', userData);
-      console.log('✅ User created:', response.data);
-      return response.data.data;
-    } catch (error) {
-      console.error('❌ Error creating user:', error);
-      throw error;
-    }
-  }
+  
 
-  // 🆕 حذف مستخدم
-  async deleteUser(userId: number): Promise<{ 
-    success: boolean; 
-    message: string;
-  }> {
-    try {
-      const response = await api.delete(`/admin/users/${userId}`);
-      console.log('✅ User deleted:', response.data);
-      return {
-        success: true,
-        message: response.data.message || 'User deleted successfully'
-      };
-    } catch (error) {
-      console.error('❌ Error deleting user:', error);
-      throw error;
-    }
-  }
+  
 
   // 🆕 جلب مستخدم محدد
-  async getUserById(userId: number): Promise<AdminUser> {
+  async getUserById(userId: number): Promise<ApiResponse<AdminUser>> {
     try {
       const response = await api.get(`/admin/users/${userId}`);
       console.log('✅ User details:', response.data);
-      return response.data.data;
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
     } catch (error) {
       console.error('❌ Error fetching user:', error);
+      throw error;
+    }
+  }
+    // 📂 الحصول على الفئات مع التصفية
+  async getCategories(
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<ApiResponse<CategoriesData>> {
+    try {
+      const response = await api.get(`/admin/categories?page=${page}&limit=${limit}`);
+      console.log('📂 Categories response:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error);
+      throw error;
+    }
+  }
+
+  // 📂 إنشاء فئة جديدة
+  async createCategory(
+    categoryData: CreateCategoryRequest
+  ): Promise<ApiResponse<Category>> {
+    try {
+      const response = await api.post('/admin/categories', categoryData);
+      console.log('✅ Category created:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Error creating category:', error);
+      throw error;
+    }
+  }
+
+  // 📂 تحديث فئة
+  async updateCategory(
+    categoryId: number,
+    updateData: UpdateCategoryRequest
+  ): Promise<ApiResponse<Category>> {
+    try {
+      const response = await api.put(`/admin/categories/${categoryId}`, updateData);
+      console.log('✅ Category updated:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Error updating category:', error);
+      throw error;
+    }
+  }
+
+  // 📂 حذف فئة
+  async deleteCategory(categoryId: number): Promise<ApiResponse<null>> {
+    try {
+      const response = await api.delete(`/admin/categories/${categoryId}`);
+      console.log('✅ Category deleted:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Error deleting category:', error);
+      throw error;
+    }
+  }
+
+  // 📂 الحصول على فئة محددة
+  async getCategoryById(categoryId: number): Promise<ApiResponse<Category>> {
+    try {
+      const response = await api.get(`/admin/categories/${categoryId}`);
+      console.log('✅ Category details:', response.data);
+      
+      // ✅ إرجاع الـ response كاملة
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Error fetching category:', error);
       throw error;
     }
   }

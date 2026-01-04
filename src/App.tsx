@@ -11,7 +11,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import OrdersPage from './pages/OrdersPage'; 
-import OrderDetailsPage from './pages/OrderDetailsPage'; 
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import CheckoutPage from './pages/CheckoutPage'; 
 import ToastProvider from './providers/ToastProvider';
@@ -22,6 +21,9 @@ import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsersPage from './pages/admin/UsersPage';
 import AdminOrdersPage from './pages/admin/OrdersPage';
+import AdminCategoriesPage from './pages/admin/CategoriesPage';
+import UserDetailsPage from './pages/admin/UserDetailsPage';
+import OrderbyPage from './pages/admin/OrderById';
 
 function App() {
   return (
@@ -73,10 +75,10 @@ const MainApp = () => {
         />
         
         <Route 
-          path="/orders/:id" 
+          path="/user/:id" 
           element={
             <ProtectedRoute>
-              <OrderDetailsPage /> 
+              <UserDetailsPage /> 
             </ProtectedRoute>
           } 
         />
@@ -113,7 +115,12 @@ const AdminApp = () => {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
-        {/* <Route path="categories" element={<AdminCategoriesPage />} /> */}
+        <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="users/:id" element={<UserDetailsPage />} />
+
+<Route path="orders/:id" element={<OrderbyPage />} />
+
+
       </Route>
     </Routes>
   );

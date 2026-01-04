@@ -11,7 +11,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import adminService from '../../services/admin.service';
 import OrdersTable from '../../components/admin/OrdersTable';
-import type { AdminOrder, OrdersListResponse, OrderStats } from '../../types/admin.types';
+import type { 
+  AdminOrder, 
+  OrderStats, 
+  ApiResponse, 
+  OrdersData,
+  DashboardStats 
+} from '../../types/admin.types';
 
 const AdminOrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,13 +34,14 @@ const AdminOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch orders
+  // Fetch orders - ✅ التعديل هنا
   const fetchOrders = async (page = 1, status?: string | null, search?: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response: OrdersListResponse = await adminService.getOrders(
+      // ✅ تغيير النوع هنا
+      const response: ApiResponse<OrdersData> = await adminService.getOrders(
         page, 
         pagination.limit, 
         status || undefined,
@@ -43,17 +50,18 @@ const AdminOrdersPage: React.FC = () => {
       
       console.log('📦 Orders response:', response);
       
-      setOrders(response.orders || []);
+      // ✅ الآن البيانات تأتي من response.data
+      setOrders(response.data.orders || []);
       setPagination({
-        page: response.pagination.page,
-        limit: response.pagination.limit,
-        total: response.pagination.total,
-        totalPages: response.pagination.totalPages
+        page: response.data.pagination.page,
+        limit: response.data.pagination.limit,
+        total: response.data.pagination.total,
+        totalPages: response.data.pagination.totalPages
       });
       
-      // Save statistics if available
-      if (response.stats) {
-        setStats(response.stats);
+      // ✅ الإحصائيات تأتي من response.data.stats (إذا كانت موجودة)
+      if (response.data.stats) {
+        setStats(response.data.stats);
       }
     } catch (err: any) {
       console.error('❌ Error fetching orders:', err);
@@ -63,22 +71,35 @@ const AdminOrdersPage: React.FC = () => {
     }
   };
 
-  // Fetch order statistics
+  // Fetch order statistics - ✅ التعديل هنا
   const fetchOrderStats = async () => {
     try {
-      const statsData = await adminService.getOrderStats();
-      setStats(statsData);
+      
+      
+      // ✅ الخيار 2: استخدام إحصائيات Dashboard (بناءً على بيانات Postman)
+      const response: ApiResponse<DashboardStats> = await adminService.getDashboardStats();
+      
+      const dashboardOrders = response.data.orders;
+      
+      // إذا كنت تحتاج OrderStats بالضبط، أنشئه من البيانات
+      const orderStats: OrderStats = {
+        total: dashboardOrders.total_orders,
+        pending: dashboardOrders.pending_orders,
+        processing: 0, // قد لا يكون موجوداً في Dashboard
+        shipped: dashboardOrders.shipped_orders,
+        delivered: dashboardOrders.delivered_orders,
+        cancelled: 0, // قد لا يكون موجوداً في Dashboard
+        total_revenue: response.data.revenue.total_revenue
+      };
+      
+      setStats(orderStats);
+      
     } catch (err) {
       console.error('❌ Error fetching order stats:', err);
     }
   };
 
-  useEffect(() => {
-    fetchOrders(1, statusFilter, searchQuery);
-    fetchOrderStats();
-  }, []);
-
-  // Update order status
+  // Update order status - ✅ التعديل هنا (اختياري)
   const handleUpdateStatus = async (orderId: number, status: string) => {
     try {
       // Update UI immediately
@@ -88,10 +109,11 @@ const AdminOrdersPage: React.FC = () => {
         )
       );
 
-      // Send update to server
+      // ✅ لا نحتاج لمعالجة response لأنها ApiResponse<null>
       await adminService.updateOrderStatus(orderId, status);
       
-      // Refresh statistics
+      // Refresh data
+      fetchOrders(pagination.page, statusFilter, searchQuery);
       fetchOrderStats();
       
       console.log(`✅ Order ${orderId} status updated to ${status}`);
@@ -102,13 +124,29 @@ const AdminOrdersPage: React.FC = () => {
       // Reload data in case of error
       fetchOrders(pagination.page, statusFilter, searchQuery);
       
-      setError(err.response?.data?.message || 'Failed to update order status');
+      setError(err.response?.data?.message || err.message || 'Failed to update order status');
     }
   };
 
-  // View order details
-  const handleViewOrder = (order: AdminOrder) => {
-    navigate(`/admin/orders/${order.id}`);
+  // View order details - ✅ التعديل هنا
+  const handleViewOrder = async (order: AdminOrder) => {
+    try {
+      // ✅ يمكنك جلب تفاصيل إضافية إذا أردت
+      const response = await adminService.getOrderById(order.id);
+      console.log('📦 Order details:', response.data);
+      
+      // انتقل للصفحة مع بيانات الطلب
+      navigate(`/admin/orders/${order.id}`, { 
+        state: { order: response.data } 
+      });
+      
+    } catch (error) {
+      console.error('❌ Error fetching order details:', error);
+      // إذا فشل جلب التفاصيل، انتقل بالبيانات الأساسية فقط
+      navigate(`/admin/orders/${order.id}`, { 
+        state: { order } 
+      });
+    }
   };
 
   // Change page
@@ -124,7 +162,7 @@ const AdminOrdersPage: React.FC = () => {
     alert('Export feature will be added soon');
   };
 
-  // Quick statistics cards
+  // Quick statistics cards - ✅ تعديل بناءً على البيانات الجديدة
   const statCards = [
     {
       title: 'Total Orders',
@@ -134,8 +172,8 @@ const AdminOrdersPage: React.FC = () => {
       change: '+12%'
     },
     {
-      title: 'Processing',
-      value: stats?.processing?.toLocaleString() || '0',
+      title: 'Pending',
+      value: stats?.pending?.toLocaleString() || '0',
       icon: <Package className="text-yellow-500" size={24} />,
       color: 'bg-yellow-50',
       change: '+5%'
@@ -161,6 +199,12 @@ const AdminOrdersPage: React.FC = () => {
     }
   ];
 
+  // ✅ إضافة useEffect لتحميل البيانات
+  useEffect(() => {
+    fetchOrders(1, statusFilter, searchQuery);
+    fetchOrderStats();
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Title and Actions */}
@@ -169,6 +213,11 @@ const AdminOrdersPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
           <p className="text-gray-600 mt-1">
             Total Orders: <span className="font-bold">{pagination.total}</span>
+            {Response && (
+              <span className="ml-2 text-sm text-green-600">
+                ({Response.name})
+              </span>
+            )}
           </p>
         </div>
         
@@ -222,17 +271,17 @@ const AdminOrdersPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Status Distribution Chart (can be enhanced later) */}
+      {/* Status Distribution Chart */}
       {stats && (
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <h3 className="text-lg font-bold mb-4">Orders Distribution by Status</h3>
           <div className="flex flex-wrap gap-4">
             {Object.entries({
-              pending: stats.pending,
-              processing: stats.processing,
-              shipped: stats.shipped,
-              delivered: stats.delivered,
-              cancelled: stats.cancelled
+              pending: stats.pending || 0,
+              processing: stats.processing || 0,
+              shipped: stats.shipped || 0,
+              delivered: stats.delivered || 0,
+              cancelled: stats.cancelled || 0
             }).map(([status, count]) => (
               <div key={status} className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${

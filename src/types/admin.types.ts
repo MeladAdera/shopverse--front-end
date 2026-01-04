@@ -1,23 +1,44 @@
 // 📁 src/types/admin.types.ts
 
-// ⭐ واجهة الاستجابة العامة من API
+// ⭐ واجهة الاستجابة العامة من API - نظيفة تماماً
 export interface ApiResponse<T> {
-  stats: any;
-  pagination: any;
-  orders: never[];
   success: boolean;
   message: string;
   timestamp?: string;
   data: T;
+  // 🚫 إزالة كل شيء آخر - stats, pagination, orders لا تنتمي هنا
 }
 
+// ⭐ بيانات Dashboard الحقيقية (بناءً على Postman)
 export interface DashboardStats {
-  recent_orders: any[];
-  total_users: number;
-  total_orders: number;
-  total_products: number;
-  total_revenue: number;
-  summary?: {
+  users: {
+    total_users: number;
+    active_users: number;
+    admin_users: number;
+    new_users_week: number;
+  };
+  products: {
+    total_products: number;
+    in_stock: number;
+    out_of_stock: number;
+    inactive_products: number;
+    total_sales: number;
+  };
+  orders: {
+    total_orders: number;
+    pending_orders: number;
+    confirmed_orders: number;
+    shipped_orders: number;
+    delivered_orders: number;
+    new_orders_week: number;
+  };
+  revenue: {
+    total_revenue: number;
+    confirmed_revenue: number;
+    revenue_30_days: number;
+  };
+  recent_orders: RecentOrder[];
+  summary: {
     total_revenue: number;
     total_orders: number;
     total_users: number;
@@ -25,6 +46,17 @@ export interface DashboardStats {
   };
 }
 
+// ⭐ نوع Order المبسط لـ Recent Orders
+export interface RecentOrder {
+  id: number;
+  total_amount: string;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  created_at: string;
+  customer_name: string;
+  items_count: string;
+}
+
+// ⭐ بيانات المستخدم
 export interface AdminUser {
   id: number;
   name: string;
@@ -35,12 +67,7 @@ export interface AdminUser {
   updated_at?: string;
 }
 
-export interface UserStatusUpdate {
-  userId: number;
-  active: boolean;
-}
-
-// ⭐ البيانات الداخلية للمستخدمين
+// ⭐ البيانات الداخلية للمستخدمين (تأتي داخل data)
 export interface UsersData {
   users: AdminUser[];
   pagination: {
@@ -51,10 +78,7 @@ export interface UsersData {
   };
 }
 
-// ⭐ الاستجابة الكاملة للمستخدمين
-export type UsersListResponse = ApiResponse<UsersData>;
-
-// ⭐ أنواع الطلبات
+// ⭐ أنواع الطلبات الكاملة
 export interface AdminOrder {
   id: number;
   order_number?: string;
@@ -75,6 +99,32 @@ export interface AdminOrder {
   notes?: string;
 }
 
+// ⭐ البيانات الداخلية للطلبات (تأتي داخل data)
+export interface OrdersData {
+  orders: AdminOrder[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  // ⚠️ ملاحظة: stats لم تأتِ في البيانات الحقيقية من /orders
+  // إذا كانت تأتي من endpoint آخر، ابقها optional
+  stats?: OrderStats;
+}
+
+// ⭐ إحصائيات الطلبات (لـ endpoint منفصل مثل /orders/stats)
+export interface OrderStats {
+  total: number;
+  pending: number;
+  processing: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+  total_revenue: number;
+}
+
+// ⭐ عناصر الطلب
 export interface OrderItem {
   id: number;
   order_id: number;
@@ -86,35 +136,10 @@ export interface OrderItem {
   total_price: string;
 }
 
-export interface OrderStatusUpdate {
-  orderId: number;
-  status: AdminOrder['status'];
-}
-
-// ⭐ البيانات الداخلية للطلبات
-export interface OrdersData {
-  orders: AdminOrder[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  stats?: OrderStats;
-}
-
-// ⭐ الاستجابة الكاملة للطلبات
+// ⭐ يمكنك إبقاء الأنواع المساعدة (Helper Types) إن أردت
+export type UsersListResponse = ApiResponse<UsersData>;
 export type OrdersListResponse = ApiResponse<OrdersData>;
-
-export interface OrderStats {
-  total: number;
-  pending: number;
-  processing: number;
-  shipped: number;
-  delivered: number;
-  cancelled: number;
-  total_revenue: number;
-}
+export type DashboardStatsResponse = ApiResponse<DashboardStats>;
 
 // 🆕 حالة الطلب بالعربية
 export const ORDER_STATUS_LABELS: Record<AdminOrder['status'], string> = {
@@ -149,3 +174,36 @@ export const PAYMENT_STATUS_COLORS: Record<AdminOrder['payment_status'], string>
   failed: 'bg-red-100 text-red-800',
   refunded: 'bg-gray-100 text-gray-800'
 };
+// 📁 src/types/admin.types.ts
+
+// ⭐ نوع بيانات الفئة (Category)
+export interface Category {
+  id: number;
+  name: string;
+  image_url: string;
+  created_at: string;
+  updated_at?: string;
+  product_count?: number; // اختياري
+}
+
+// ⭐ البيانات الداخلية للفئات (تأتي داخل data)
+export interface CategoriesData {
+  categories: Category[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ⭐ نوع طلب إنشاء/تحديث الفئة
+export interface CreateCategoryRequest {
+  name: string;
+  image_url: string;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  image_url?: string;
+}

@@ -1,5 +1,5 @@
 // 📁 src/App.tsx
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Header from "./components/ui/header/Header";
 import Homepage from "./routes/Homepage";
@@ -10,22 +10,36 @@ import AllReviewsPage from './routes/AllReviewsPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
-import OrdersPage from './pages/OrdersPage'; 
+import OrdersPage from '@/pages/admin/OrdersPage'; 
 import ProtectedRoute from './components/layout/ProtectedRoute';
-import CheckoutPage from './pages/CheckoutPage'; 
-import ToastProvider from './providers/ToastProvider';
+import CheckoutPage from '@/pages/client/CheckoutPage'; 
+import ToastProvider from '@/providers/ToastProvider';
 
 // 🆕 استيراد مكونات الإدارة
 import { AdminRoute } from './components/admin/AdminRoute';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsersPage from './pages/admin/UsersPage';
-import AdminOrdersPage from './pages/admin/OrdersPage';
+import AdminOrdersPage from '@/pages/admin/adminOrdersPage';
 import AdminCategoriesPage from './pages/admin/CategoriesPage';
 import UserDetailsPage from './pages/admin/UserDetailsPage';
 import OrderbyPage from './pages/admin/OrderById';
+import NewArrivals from '@/pages/client/NewArrivals';
+import OrderConfirmationPage from './pages/client/OrderConfirmationPage';
+import { useEffect } from 'react';
 
 function App() {
+   const location = useLocation();
+  
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchQuery = params.get('search');
+    
+    if (searchQuery) {
+      // Fetch products with search query
+      fetchProducts({ search: searchQuery });
+    }
+  }, [location.search]);
   return (
     <AuthProvider>
       <div className="min-h-screen">
@@ -50,10 +64,12 @@ const MainApp = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/product/:id" element={<ProductPage />} />
-        <Route path="/category/:id" element={<Page />} />
+        <Route path="/products" element={<Page />} />
         <Route path="/product/:id/reviews" element={<AllReviewsPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} /> 
+        <Route path="/new-arrivals" element={<NewArrivals />} />
+
         
         {/* Protected Routes */}
         <Route 
@@ -79,6 +95,14 @@ const MainApp = () => {
           element={
             <ProtectedRoute>
               <UserDetailsPage /> 
+            </ProtectedRoute>
+          } 
+        />
+         <Route 
+          path="/orders/:id" 
+          element={
+            <ProtectedRoute>
+              <OrderConfirmationPage /> 
             </ProtectedRoute>
           } 
         />
@@ -127,3 +151,7 @@ const AdminApp = () => {
 };
 
 export default App;
+
+function fetchProducts(_arg0: { search: string; }) {
+  throw new Error('Function not implemented.');
+}

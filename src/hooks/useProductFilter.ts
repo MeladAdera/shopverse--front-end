@@ -1,76 +1,69 @@
 // 📁 hooks/useProductFilter.ts
-import { useState, useEffect, useCallback } from 'react';
-import { fetchProductsWithFilters, type FilterParams, type Product } from '@/services/productApi';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchProductsWithFilters, type FilterParams } from '@/services/productApi';
 
 export const useProductFilter = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterParams>({});
 
-  // دالة لجلب المنتجات مع الفلاتر
-  const fetchFilteredProducts = useCallback(async (filters: FilterParams) => {
-    console.log('🎯 [useProductFilter] Fetching with filters:', filters);
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
+  const {
+    data: productsData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['products', filters],
+    queryFn: async () => {
       const result = await fetchProductsWithFilters(filters);
       
-      if (result.success) {
-        setProducts(result.data.products || []);
-        console.log(`✅ [useProductFilter] Found ${result.data.products?.length || 0} products`);
-      } else {
-        setError(result.message);
-        setProducts([]);
+      if (!result.success) {
+        throw new Error(result.message || 'فشل في جلب المنتجات');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('❌ [useProductFilter] Error:', errorMessage);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+      
+      return result.data;
+    },
+  });
+
+  const products = productsData?.products || [];
+  const pagination = productsData?.pagination;
+
+  const fetchFilteredProducts = useCallback(async (newFilters: FilterParams) => {
+    setFilters(newFilters);
+    // لا حاجة لـ refetch() لأن TanStack Query سيتحسس للتغيير تلقائياً
   }, []);
 
-  // جلب جميع المنتجات (بدون فلتر)
-  const fetchAllProducts = useCallback(async () => {
-    console.log('📦 [useProductFilter] Fetching all products');
-    await fetchFilteredProducts({});
+  const fetchAllProducts = useCallback(() => {
+    fetchFilteredProducts({});
   }, [fetchFilteredProducts]);
 
-  // جلب منتجات بتصنيف معين
-  const fetchByCategory = useCallback(async (category: string) => {
-    console.log(`🏷️ [useProductFilter] Fetching by category: ${category}`);
-    await fetchFilteredProducts({ category });
+  const fetchByCategory = useCallback((category: string) => {
+    fetchFilteredProducts({ category });
   }, [fetchFilteredProducts]);
 
-  // جلب منتجات بلون معين
-  const fetchByColor = useCallback(async (color: string) => {
-    console.log(`🎨 [useProductFilter] Fetching by color: ${color}`);
-    await fetchFilteredProducts({ color });
+  const fetchByColor = useCallback((color: string) => {
+    fetchFilteredProducts({ color });
   }, [fetchFilteredProducts]);
 
-  // جلب منتجات بحجم معين
-  const fetchBySize = useCallback(async (size: string) => {
-    console.log(`📏 [useProductFilter] Fetching by size: ${size}`);
-    await fetchFilteredProducts({ size });
+  const fetchBySize = useCallback((size: string) => {
+    fetchFilteredProducts({ size });
   }, [fetchFilteredProducts]);
 
-  // جلب المنتجات عند تحميل المكون أول مرة
-  useEffect(() => {
-    fetchAllProducts();
-  }, [fetchAllProducts]);
+  const clearFilters = useCallback(() => {
+    setFilters({});
+  }, []);
 
   return {
     products,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message || null,
+    filters,
+    pagination,
     fetchFilteredProducts,
     fetchAllProducts,
     fetchByCategory,
     fetchByColor,
     fetchBySize,
-    setProducts,
-  };}
+    clearFilters,
+    refreshProducts: refetch,
+  };
+};

@@ -6,8 +6,8 @@ class AuthService {
   // Register new user
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await api.post('/auth/register', data);
-    this.setAuthData(response.data);
-    return response.data;
+    this.setAuthData(response.data.data);
+    return response.data.data;;
   }
 
   // Login user

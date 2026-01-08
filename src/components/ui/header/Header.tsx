@@ -9,13 +9,33 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import UserMenu from '../UserMenu'; // Import the UserMenu
+import UserMenu from '../UserMenu';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
+import { useState } from 'react';
 
 function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Simple search handler
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (searchQuery.trim()) {
+      // Navigate to products page with search query
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(''); // Clear input after search
+    }
+  };
+
+  // Handle Enter key press in search input
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
 
   return (
     <>
@@ -35,47 +55,52 @@ function Header() {
           {/* Navigation */}
           <div className="flex justify-between items-center shrink-0 gap-4 lg:gap-6">
             <button 
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate('/products')}
               className="text-[16px] lg:text-[18px] hover:text-gray-600 transition-colors px-3 lg:px-4 py-2 font-medium"
             >
               Shop
             </button>
             <button 
-              onClick={() => navigate('/sale')}
+              onClick={() => navigate('/products')}
               className="text-[16px] lg:text-[18px] hover:text-gray-600 transition-colors px-3 lg:px-4 py-2 font-medium"
             >
               On Sale
             </button>
             <button 
-              onClick={() => navigate('/new')}
+              onClick={() => navigate('/new-arrivals')}
               className="text-[16px] lg:text-[18px] hover:text-gray-600 transition-colors px-3 lg:px-4 py-2 font-medium"
             >
               New Arrivals
             </button>
             <button 
-              onClick={() => navigate('/brands')}
+              onClick={() => navigate('/products')}
               className="text-[16px] lg:text-[18px] hover:text-gray-600 transition-colors px-3 lg:px-4 py-2 font-medium"
             >
               Brands
             </button>
           </div>
           
-          {/* Search */}
+          {/* Search - SIMPLE VERSION */}
           <div className="flex-1 min-w-0 max-w-[350px]">
-            <Input
-              type="search"
-              placeholder="Search for products..."
-              startIcon={
-                <Search className="h-4 w-4 text-gray-600" />
-              }
-              className={cn(
-                "h-10 rounded-full",
-                "border-gray-500 hover:border-gray-400 focus-visible:border-gray-500",
-                "focus-visible:ring-1 focus-visible:ring-gray-300",
-                "bg-gray-100 transition-all duration-200",
-                "placeholder:text-gray-600 text-sm"
-              )}
-            />
+            <form onSubmit={handleSearch}>
+              <Input
+                type="search"
+                placeholder="Search for products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                startIcon={
+                  <Search className="h-4 w-4 text-gray-600" />
+                }
+                className={cn(
+                  "h-10 rounded-full",
+                  "border-gray-500 hover:border-gray-400 focus-visible:border-gray-500",
+                  "focus-visible:ring-1 focus-visible:ring-gray-300",
+                  "bg-gray-100 transition-all duration-200",
+                  "placeholder:text-gray-600 text-sm"
+                )}
+              />
+            </form>
           </div>
           
           {/* Icons */}
@@ -273,8 +298,11 @@ function Header() {
           
           {/* Right Section: 3 Icons */}
           <div className="flex gap-2 shrink-0 items-center">
-            {/* Search Icon */}
-            <button className="hover:bg-gray-100 rounded-full p-2 transition-colors">
+            {/* Search Icon - SIMPLE VERSION */}
+            <button 
+              onClick={handleSearch}
+              className="hover:bg-gray-100 rounded-full p-2 transition-colors"
+            >
               <Search className="w-5 h-5" />
             </button>
             

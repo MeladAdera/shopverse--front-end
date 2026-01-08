@@ -19,7 +19,7 @@ import Footer from "../components/ui/Footer";
 import { productService } from '@/services/product.service';
 import type { Product } from '@/types/product';
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useCart } from "@/hooks/useCart"; // ⬅️ أضف هذا
+import { useCart } from "@/hooks/useCart";
 
 const ProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,13 +31,15 @@ const ProductPage: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   
   const [selectedImage, setSelectedImage] = useState(0);
-  // 🔧 **تغيير هنا: تخزين القيمة الفعلية بدلاً من index**
   const [selectedColor, setSelectedColor] = useState<string>("Black");
   const [selectedSize, setSelectedSize] = useState<string>("Medium"); 
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'faq'>('details');
   const { userId } = useCurrentUser();
   
-  // 🔥 **أضف هذين السطرين**
+  // 🔥 **أضف هذه الحالة للمنتجات المشابهة**
+  const [alsoLikeProducts, setAlsoLikeProducts] = useState<any[]>([]);
+  const [isLoadingAlsoLike, setIsLoadingAlsoLike] = useState(false);
+  
   const [quantity, setQuantity] = useState(1);
   const { addToCart, isLoading: isAddingToCart } = useCart();
   
@@ -46,49 +48,6 @@ const ProductPage: React.FC = () => {
   
   // 🔧 **الـ 4 مقاسات الأساسية**
   const baseSizes = ["Small", "Medium", "Large", "X-Large"];
-  
-  const AlsoLikeProducts = [
-    {
-      name: "VERTICAL STRIPED SHIRT",
-      category: "Men's Fashion",
-      image: "/image copy 13.png",
-      price: "34.99",
-      originalPrice: "43.99",
-      discount: "-20%",
-      rating: 4.5,
-      ratingStars: "★★★★★"
-    },
-    {
-      name: "VERTICAL STRIPED SHIRT",
-      category: "Men's Fashion",
-      image: "/image copy 14.png",
-      price: "34.99",
-      originalPrice: "43.99",
-      discount: "-20%",
-      rating: 4.5,
-      ratingStars: "★★★★★"
-    },
-    {
-      name: "VERTICAL STRIPED SHIRT",
-      category: "Men's Fashion",
-      image: "/image copy 15.png",
-      price: "34.99",
-      originalPrice: "43.99",
-      discount: "-20%",
-      rating: 4.5,
-      ratingStars: "★★★★★"
-    },
-    {
-      name: "VERTICAL STRIPED SHIRT",
-      category: "Men's Fashion",
-      image: "/image copy 16.png",
-      price: "34.99",
-      originalPrice: "43.99",
-      discount: "-20%",
-      rating: 4.5,
-      ratingStars: "★★★★★"
-    },
-  ];
   
   const AlsoLike = (
     <svg width="100%" height="36" viewBox="0 0 578 36" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -153,6 +112,51 @@ const ProductPage: React.FC = () => {
     
     fetchProductData();
   }, [productId]);
+
+  // 🔥 **جلب المنتجات المشابهة**
+  useEffect(() => {
+    const fetchAlsoLikeProducts = async () => {
+      if (!product) return;
+      
+      setIsLoadingAlsoLike(true);
+      try {
+        console.log('🔍 Fetching also like products...');
+        
+        // استخدام دالة getTopSelling الموجودة
+        const products = await productService.getTopSelling(8);
+        
+        // تصفية المنتج الحالي وأخذ أول 4 منتجات
+        const filteredProducts = products
+          .filter(p => p.id !== product.id)
+          .slice(0, 4);
+        
+        console.log('✅ Also like products:', filteredProducts);
+        setAlsoLikeProducts(filteredProducts);
+      } catch (error) {
+        console.error('❌ Error fetching also like products:', error);
+        
+        // إذا فشل getTopSelling، حاول استخدام getNewArrivals
+        try {
+          console.log('🔄 Trying fallback with getNewArrivals...');
+          const fallbackProducts = await productService.getNewArrivals(8);
+          const filteredFallback = fallbackProducts
+            .filter(p => p.id !== product.id)
+            .slice(0, 4);
+          
+          setAlsoLikeProducts(filteredFallback);
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          setAlsoLikeProducts([]);
+        }
+      } finally {
+        setIsLoadingAlsoLike(false);
+      }
+    };
+    
+    if (product) {
+      fetchAlsoLikeProducts();
+    }
+  }, [product]);
 
   // وظيفة لبناء رابط الصورة
   const getImageUrl = (imagePath: string): string => {
@@ -550,9 +554,12 @@ const ProductPage: React.FC = () => {
 
 </div>
 
-{/* Also Like Products */}
-<Galliry  titleSvg={AlsoLike}
-      products={AlsoLikeProducts}/>
+{/* Also Like Products - Updated to use real products */}
+<Galliry  
+  titleSvg={AlsoLike}
+  products={isLoadingAlsoLike ? [] : alsoLikeProducts}
+/>
+
       </div>
       
       {/* Subscribe */}

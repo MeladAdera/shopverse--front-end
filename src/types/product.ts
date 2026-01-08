@@ -74,3 +74,14 @@ export interface FAQ {
   question: string;
   answer: string;
 }
+export interface BrandProductsResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  data: {
+    products: {
+      products: Product[];
+      pagination: Pagination;
+    }
+  }
+}

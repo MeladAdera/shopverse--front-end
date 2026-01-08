@@ -22,6 +22,7 @@ export interface CartResponse {
 }
 
 export interface ApiResponse<T> {
+  error(arg0: string, error: any): unknown;
   success: boolean;
   message: string;
   timestamp: string;

@@ -1,5 +1,5 @@
 // 📁 src/hooks/useOrderDetails.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import adminService from '../services/admin.service';
 import type { AdminOrder, ApiResponse } from '../types/admin.types';
 
@@ -13,60 +13,71 @@ interface UseOrderDetailsReturn {
 }
 
 export const useOrderDetails = (id?: string): UseOrderDetailsReturn => {
-  const [order, setOrder] = useState<AdminOrder | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const queryClient = useQueryClient();
+  const orderId = id ? parseInt(id) : 0;
 
-  const fetchOrder = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Query لجلب الطلب
+  const {
+    data: order,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['order', orderId],
+    queryFn: async () => {
+      if (!orderId) return null;
       
-      const orderId = parseInt(id || '0');
-      if (!orderId) {
-        throw new Error('Invalid order ID');
-      }
-
       const response: ApiResponse<AdminOrder> = await adminService.getOrderById(orderId);
-      setOrder(response.data);
       
-    } catch (err: any) {
-      console.error('❌ Error fetching order:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load order');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+      if (!response.success) {
+        throw new Error(response.message || 'فشل في جلب الطلب');
+      }
+      
+      return response.data;
+    },
+    enabled: !!orderId,
+  });
 
-  const updateOrderStatus = useCallback(async (newStatus: string) => {
-    if (!order) return;
+  // Mutation لتحديث الحالة
+  const updateMutation = useMutation({
+    mutationFn: async (newStatus: string) => {
+      if (!orderId) throw new Error('رقم الطلب غير صالح');
+      
+      const response = await adminService.updateOrderStatus(orderId, newStatus);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'فشل في تحديث الطلب');
+      }
+      
+      return response.data;
+    },
+    onSuccess: (updatedOrder) => {
+      // تحديث cache
+      queryClient.setQueryData(['order', orderId], updatedOrder);
+      
+      // تحديث قائمة الطلبات أيضاً
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
 
+  const updateOrderStatus = async (newStatus: string) => {
     try {
-      setUpdating(true);
-      await adminService.updateOrderStatus(order.id, newStatus);
-      
-      // تحديث الـ UI مباشرة
-      setOrder({ ...order, status: newStatus as any });
-      
-    } catch (err: any) {
-      console.error('❌ Error updating order:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to update order');
-    } finally {
-      setUpdating(false);
+      await updateMutation.mutateAsync(newStatus);
+    } catch (error) {
+      throw error;
     }
-  }, [order]);
+  };
 
-  useEffect(() => {
-    fetchOrder();
-  }, [fetchOrder]);
+  const fetchOrder = async () => {
+    await refetch();
+  };
 
   return {
-    order,
-    loading,
-    error,
-    updating,
+    order: order || null,
+    loading: isLoading,
+    error: error?.message || null,
+    updating: updateMutation.isPending,
     fetchOrder,
-    updateOrderStatus
+    updateOrderStatus,
   };
 };

@@ -1,330 +1,475 @@
-// 📁 src/pages/admin/OrdersPage.tsx
-import React, { useEffect, useState } from 'react';
-import { 
-  Package, 
-  Truck, 
-  RefreshCw, 
-  AlertCircle, 
-  BarChart3,
-  Download
-} from 'lucide-react';
+// 📁 src/pages/OrdersPage.tsx
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import adminService from '../../services/admin.service';
-import OrdersTable from '../../components/admin/OrdersTable';
-import type { 
-  AdminOrder, 
-  OrderStats, 
-  ApiResponse, 
-  OrdersData,
-  DashboardStats 
-} from '../../types/admin.types';
+import { orderService } from '../../services/order.service';
+import type { Order } from '../../types/order';
+import { showToast } from '../../utils/toast';
 
-const AdminOrdersPage: React.FC = () => {
+export default function OrdersPage() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<OrderStats | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 1
   });
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  // Fetch orders - ✅ التعديل هنا
-  const fetchOrders = async (page = 1, status?: string | null, search?: string) => {
+  // Load orders when page or filter changes
+  useEffect(() => {
+    loadOrders();
+  }, [pagination.page, statusFilter]);
+
+  const loadOrders = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // ✅ تغيير النوع هنا
-      const response: ApiResponse<OrdersData> = await adminService.getOrders(
-        page, 
-        pagination.limit, 
-        status || undefined,
-        search || undefined
-      );
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        ...(statusFilter && { status: statusFilter })
+      };
       
-      console.log('📦 Orders response:', response);
+      const response = await orderService.getOrders(params);
       
-      // ✅ الآن البيانات تأتي من response.data
-      setOrders(response.data.orders || []);
-      setPagination({
-        page: response.data.pagination.page,
-        limit: response.data.pagination.limit,
-        total: response.data.pagination.total,
-        totalPages: response.data.pagination.totalPages
-      });
-      
-      // ✅ الإحصائيات تأتي من response.data.stats (إذا كانت موجودة)
-      if (response.data.stats) {
-        setStats(response.data.stats);
+      if (response.success && response.data) {
+        setOrders(response.data.orders);
+        setPagination(response.data.pagination);
+      } else {
+        setError('Failed to load orders');
+        showToast.error('Failed to load orders');
       }
     } catch (err: any) {
-      console.error('❌ Error fetching orders:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load orders');
+      const errorMsg = err.response?.data?.message || err.message || 'An error occurred';
+      setError(errorMsg);
+      showToast.error(errorMsg);
+      console.error('Error loading orders:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch order statistics - ✅ التعديل هنا
-  const fetchOrderStats = async () => {
-    try {
-      
-      
-      // ✅ الخيار 2: استخدام إحصائيات Dashboard (بناءً على بيانات Postman)
-      const response: ApiResponse<DashboardStats> = await adminService.getDashboardStats();
-      
-      const dashboardOrders = response.data.orders;
-      
-      // إذا كنت تحتاج OrderStats بالضبط، أنشئه من البيانات
-      const orderStats: OrderStats = {
-        total: dashboardOrders.total_orders,
-        pending: dashboardOrders.pending_orders,
-        processing: 0, // قد لا يكون موجوداً في Dashboard
-        shipped: dashboardOrders.shipped_orders,
-        delivered: dashboardOrders.delivered_orders,
-        cancelled: 0, // قد لا يكون موجوداً في Dashboard
-        total_revenue: response.data.revenue.total_revenue
-      };
-      
-      setStats(orderStats);
-      
-    } catch (err) {
-      console.error('❌ Error fetching order stats:', err);
-    }
+  const handleViewOrder = (orderId: number) => {
+    navigate(`/orders/${orderId}`);
   };
 
-  // Update order status - ✅ التعديل هنا (اختياري)
-  const handleUpdateStatus = async (orderId: number, status: string) => {
+  const handleCancelOrder = async (orderId: number) => {
     try {
-      // Update UI immediately
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId ? { ...order, status: status as any } : order
-        )
-      );
-
-      // ✅ لا نحتاج لمعالجة response لأنها ApiResponse<null>
-      await adminService.updateOrderStatus(orderId, status);
+    const confirmed = window.confirm('Are you sure you want to cancel this order?');
       
-      // Refresh data
-      fetchOrders(pagination.page, statusFilter, searchQuery);
-      fetchOrderStats();
+      if (!confirmed) return;
       
-      console.log(`✅ Order ${orderId} status updated to ${status}`);
+      const loadingToast = showToast.loading('Cancelling order...');
       
+      await orderService.cancelOrder(orderId);
+      
+      showToast.dismiss(loadingToast);
+      showToast.success('Order cancelled successfully');
+      
+      // Refresh orders after cancellation
+      loadOrders();
     } catch (err: any) {
-      console.error('❌ Error updating order status:', err);
-      
-      // Reload data in case of error
-      fetchOrders(pagination.page, statusFilter, searchQuery);
-      
-      setError(err.response?.data?.message || err.message || 'Failed to update order status');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to cancel order';
+      showToast.error(errorMsg);
+      console.error('Error cancelling order:', err);
     }
   };
 
-  // View order details - ✅ التعديل هنا
-  const handleViewOrder = async (order: AdminOrder) => {
-    try {
-      // ✅ يمكنك جلب تفاصيل إضافية إذا أردت
-      const response = await adminService.getOrderById(order.id);
-      console.log('📦 Order details:', response.data);
-      
-      // انتقل للصفحة مع بيانات الطلب
-      navigate(`/admin/orders/${order.id}`, { 
-        state: { order: response.data } 
-      });
-      
-    } catch (error) {
-      console.error('❌ Error fetching order details:', error);
-      // إذا فشل جلب التفاصيل، انتقل بالبيانات الأساسية فقط
-      navigate(`/admin/orders/${order.id}`, { 
-        state: { order } 
-      });
-    }
-  };
-
-  // Change page
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchOrders(newPage, statusFilter, searchQuery);
+      setPagination(prev => ({ ...prev, page: newPage }));
     }
   };
 
-  // Export data
-  const handleExportOrders = () => {
-    // TODO: Implement data export
-    alert('Export feature will be added soon');
+  // Helper function to parse string to number safely
+  const parseToNumber = (value: string | number): number => {
+    if (typeof value === 'number') return value;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
-  // Quick statistics cards - ✅ تعديل بناءً على البيانات الجديدة
-  const statCards = [
-    {
-      title: 'Total Orders',
-      value: stats?.total?.toLocaleString() || '0',
-      icon: <Package className="text-blue-500" size={24} />,
-      color: 'bg-blue-50',
-      change: '+12%'
-    },
-    {
-      title: 'Pending',
-      value: stats?.pending?.toLocaleString() || '0',
-      icon: <Package className="text-yellow-500" size={24} />,
-      color: 'bg-yellow-50',
-      change: '+5%'
-    },
-    {
-      title: 'Shipped',
-      value: stats?.shipped?.toLocaleString() || '0',
-      icon: <Truck className="text-indigo-500" size={24} />,
-      color: 'bg-indigo-50',
-      change: '+8%'
-    },
-    {
-      title: 'Total Revenue',
-      value: stats?.total_revenue ? 
-        new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 0
-        }).format(stats.total_revenue) : '$0',
-      icon: <BarChart3 className="text-green-500" size={24} />,
-      color: 'bg-green-50',
-      change: '+15%'
-    }
-  ];
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { text: string; className: string }> = {
+      pending: { 
+        text: 'Pending', 
+        className: 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
+      },
+      processing: { 
+        text: 'Processing', 
+        className: 'bg-blue-100 text-blue-800 border border-blue-200' 
+      },
+      shipped: { 
+        text: 'Shipped', 
+        className: 'bg-purple-100 text-purple-800 border border-purple-200' 
+      },
+      delivered: { 
+        text: 'Delivered', 
+        className: 'bg-green-100 text-green-800 border border-green-200' 
+      },
+      cancelled: { 
+        text: 'Cancelled', 
+        className: 'bg-red-100 text-red-800 border border-red-200' 
+      }
+    };
+    
+    const config = statusConfig[status] || { 
+      text: status, 
+      className: 'bg-gray-100 text-gray-800 border border-gray-200' 
+    };
+    
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${config.className}`}>
+        {config.text}
+      </span>
+    );
+  };
 
-  // ✅ إضافة useEffect لتحميل البيانات
-  useEffect(() => {
-    fetchOrders(1, statusFilter, searchQuery);
-    fetchOrderStats();
-  }, []);
+  // Format currency safely
+  const formatCurrency = (amount: string | number): string => {
+    const numAmount = parseToNumber(amount);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(numAmount);
+  };
+
+  // Format date safely
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  // Get items count safely
+  const getItemsCount = (count: string | number): string => {
+    const numCount = parseToNumber(count);
+    return `${numCount} item${numCount !== 1 ? 's' : ''}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading your orders...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-md mx-auto">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">
+                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Orders</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button 
+                  onClick={loadOrders}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Try Again
+                </button>
+                <button 
+                  onClick={() => navigate('/')}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Go to Home
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Title and Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-          <p className="text-gray-600 mt-1">
-            Total Orders: <span className="font-bold">{pagination.total}</span>
-            {Response && (
-              <span className="ml-2 text-sm text-green-600">
-                ({Response.name})
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+          <p className="text-gray-600 mt-2">Track and manage your orders</p>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1 when filter changes
+                }}
+                className="w-full sm:w-48 px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Orders</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center">
+              <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
+                Showing {orders.length} of {pagination.total} orders
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Orders List */}
+        {orders.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="text-gray-300 mb-4">
+              <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No orders yet</h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              {statusFilter ? 
+                `You have no orders with status "${statusFilter}"` : 
+                'Start shopping to see your orders here'
+              }
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              >
+                Start Shopping
+              </button>
+              {statusFilter && (
+                <button
+                  onClick={() => setStatusFilter('')}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View */}
+            <div className="sm:hidden space-y-4">
+              {orders.map((order) => (
+                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">Order #{order.id}</div>
+                      <div className="text-sm text-gray-500 mt-1">{formatDate(order.created_at)}</div>
+                    </div>
+                    <div>{getStatusBadge(order.status)}</div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Items:</span>
+                      <span className="font-medium">{getItemsCount(order.items_count)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total:</span>
+                      <span className="font-semibold">{formatCurrency(order.total_amount)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => handleViewOrder(order.id)}
+                      className="px-4 py-2 text-blue-600 font-medium hover:text-blue-800"
+                    >
+                      View Details
+                    </button>
+                    {(order.status === 'pending' || order.status === 'processing') && (
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="px-4 py-2 text-red-600 font-medium hover:text-red-800"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Order ID
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Items
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {orders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">#{order.id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{formatDate(order.created_at)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(order.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{getItemsCount(order.items_count)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-semibold text-gray-900">{formatCurrency(order.total_amount)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => handleViewOrder(order.id)}
+                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                            >
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </button>
+                            {(order.status === 'pending' || order.status === 'processing') && (
+                              <button
+                                onClick={() => handleCancelOrder(order.id)}
+                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                              >
+                                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-sm text-gray-700 mb-4 sm:mb-0">
+                    Page <span className="font-semibold">{pagination.page}</span> of{' '}
+                    <span className="font-semibold">{pagination.totalPages}</span> •{' '}
+                    <span className="text-gray-500">{pagination.total} total orders</span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page === 1}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Previous
+                    </button>
+                    
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (pagination.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (pagination.page <= 3) {
+                          pageNum = i + 1;
+                        } else if (pagination.page >= pagination.totalPages - 2) {
+                          pageNum = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNum = pagination.page - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              pagination.page === pageNum
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page === pagination.totalPages}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                    >
+                      Next
+                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => fetchOrders(pagination.page, statusFilter, searchQuery)}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-          
-          <button
-            onClick={handleExportOrders}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </button>
-        </div>
+          </>
+        )}
       </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center">
-            <AlertCircle className="text-red-500 mr-3" size={24} />
-            <div>
-              <h3 className="text-lg font-bold text-red-800">Error</h3>
-              <p className="text-red-600 mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <div key={index} className={`${stat.color} p-6 rounded-xl shadow-sm border`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold mt-2">{stat.value}</p>
-              </div>
-              <div className="p-3 rounded-full bg-white">
-                {stat.icon}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Status Distribution Chart */}
-      {stats && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border">
-          <h3 className="text-lg font-bold mb-4">Orders Distribution by Status</h3>
-          <div className="flex flex-wrap gap-4">
-            {Object.entries({
-              pending: stats.pending || 0,
-              processing: stats.processing || 0,
-              shipped: stats.shipped || 0,
-              delivered: stats.delivered || 0,
-              cancelled: stats.cancelled || 0
-            }).map(([status, count]) => (
-              <div key={status} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2 ${
-                  status === 'pending' ? 'bg-yellow-500' :
-                  status === 'processing' ? 'bg-blue-500' :
-                  status === 'shipped' ? 'bg-indigo-500' :
-                  status === 'delivered' ? 'bg-green-500' :
-                  'bg-red-500'
-                }`} />
-                <span className="text-sm text-gray-600 mr-1">
-                  {status === 'pending' ? 'Pending' :
-                   status === 'processing' ? 'Processing' :
-                   status === 'shipped' ? 'Shipped' :
-                   status === 'delivered' ? 'Delivered' :
-                   'Cancelled'}
-                </span>
-                <span className="font-bold ml-2">{count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Orders Table */}
-      <OrdersTable
-        orders={orders}
-        loading={loading}
-        onViewOrder={handleViewOrder}
-        onUpdateStatus={handleUpdateStatus}
-        onPageChange={handlePageChange}
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-        onStatusFilter={(status) => {
-          setStatusFilter(status);
-          fetchOrders(1, status, searchQuery);
-        }}
-        onSearch={(query) => {
-          setSearchQuery(query);
-          fetchOrders(1, statusFilter, query);
-        }}
-      />
     </div>
   );
-};
-
-export default AdminOrdersPage;
+}

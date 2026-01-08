@@ -1,8 +1,8 @@
 // 📁 src/pages/CheckoutPage.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { orderService } from '../services/order.service';
-import { showToast } from '../utils/toast';
+import { orderService } from '../../services/order.service';
+import { showToast } from '../../utils/toast';
 
 interface ShippingFormData {
   shipping_address: string;

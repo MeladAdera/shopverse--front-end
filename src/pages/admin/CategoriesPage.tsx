@@ -1,175 +1,156 @@
 // 📁 src/pages/admin/CategoriesPage.tsx
-import React, { useEffect, useState } from 'react';
-import { 
-  Folder, 
-  FolderPlus, 
-  Edit, 
-  Trash2, 
-  RefreshCw,
-  AlertCircle,
-  CheckCircle,
-  Image as ImageIcon
-} from 'lucide-react';
-import adminService from '../../services/admin.service';
-import type { 
-  Category, 
-  ApiResponse,
-  CategoriesData,
-  CreateCategoryRequest,
-  UpdateCategoryRequest
-} from '../../types/admin.types';
+import React, { useEffect, useState } from 'react'; // Add useState
+import { FolderPlus, RefreshCw } from 'lucide-react';
+import { useCategories } from '../../hooks/useCategories';
+import CategoriesTable from '../../components/admin/CategoriesTable';
+import CategoryFormModal from '../../components/admin/CategoryFormModal';
+import AlertMessage from '../../components/ui/AlertMessage';
 
 const AdminCategoriesPage: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 1
-  });
+  const {
+    categoriesQuery,
+    createCategoryMutation,
+    updateCategoryMutation,
+    deleteCategoryMutation,
+    selectedCategory,
+    showCreateModal,
+    showEditModal,
+    formData,
+    setShowCreateModal,
+    setShowEditModal,
+    setSelectedCategory,
+    setFormData,
+    resetForm,
+    refetchCategories,
+  } = useCategories();
 
-  // حالات النموذج
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  
-  const [formData, setFormData] = useState<CreateCategoryRequest>({
-    name: '',
-    image_url: ''
-  });
+  // Local state for success messages
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
 
-  // 📂 جلب الفئات
-  const fetchCategories = async (page = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('📂 Fetching categories page:', page);
-      const response: ApiResponse<CategoriesData> = await adminService.getCategories(page, pagination.limit);
-      
-      console.log('📂 Categories data:', response.data);
-      
-      setCategories(response.data.categories || []);
-      setPagination(response.data.pagination);
-      
-    } catch (err: any) {
-      console.error('❌ Error fetching categories:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to load categories');
-    } finally {
-      setLoading(false);
-    }
+  // Extract data from query
+  const { 
+    data: categoriesData, 
+    isLoading: loading, 
+    error: queryError,
+    refetch: fetchCategories 
+  } = categoriesQuery;
+  
+  const categories = categoriesData?.categories || [];
+  const pagination = categoriesData?.pagination || { 
+    page: 1, 
+    limit: 10, 
+    total: 0, 
+    totalPages: 1 
   };
+
+  // Listen for mutation successes
+  useEffect(() => {
+    if (createCategoryMutation.isSuccess) {
+      setSuccessMessage('Category created successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+  }, [createCategoryMutation.isSuccess]);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (updateCategoryMutation.isSuccess) {
+      setSuccessMessage('Category updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+  }, [updateCategoryMutation.isSuccess]);
 
-  // 📂 إنشاء فئة جديدة
+  useEffect(() => {
+    if (deleteCategoryMutation.isSuccess) {
+      setSuccessMessage('Category deleted successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+  }, [deleteCategoryMutation.isSuccess]);
+
+  // Handle create category
   const handleCreateCategory = async () => {
-    try {
-      if (!formData.name.trim()) {
-        setError('Category name is required');
-        return;
-      }
+    if (!formData.name.trim()) {
+      alert('Category name is required');
+      return;
+    }
 
-      console.log('📤 Creating category:', formData);
-      const response: ApiResponse<Category> = await adminService.createCategory(formData);
-      
-      console.log('✅ Created category:', response.data);
-      
-      setSuccess(response.message);
-      setShowCreateModal(false);
-      setFormData({ name: '', image_url: '' });
-      
-      // إعادة تحميل القائمة
-      fetchCategories(pagination.page);
-      
-      // إخفاء رسالة النجاح بعد 5 ثواني
-      setTimeout(() => setSuccess(null), 5000);
-      
-    } catch (err: any) {
-      console.error('❌ Error creating category:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to create category');
+    try {
+      await createCategoryMutation.mutateAsync(formData);
+    } catch (err) {
+      // Error is handled in the mutation
     }
   };
 
-  // 📂 تحديث فئة
+  // Handle update category
   const handleUpdateCategory = async () => {
     if (!selectedCategory) return;
 
     try {
-      console.log('📤 Updating category:', selectedCategory.id, formData);
-      const response: ApiResponse<Category> = await adminService.updateCategory(
-        selectedCategory.id, 
-        formData as UpdateCategoryRequest
-      );
-      
-      console.log('✅ Updated category:', response.data);
-      
-      setSuccess(response.message);
-      setShowEditModal(false);
-      setSelectedCategory(null);
-      setFormData({ name: '', image_url: '' });
-      
-      // تحديث القائمة
-      fetchCategories(pagination.page);
-      
-    } catch (err: any) {
-      console.error('❌ Error updating category:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to update category');
+      await updateCategoryMutation.mutateAsync({
+        id: selectedCategory.id,
+        data: formData
+      });
+    } catch (err) {
+      // Error is handled in the mutation
     }
   };
 
-  // 📂 حذف فئة
-  const handleDeleteCategory = async (categoryId: number) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+  // Handle delete category - with confirmation modal
+  const openDeleteConfirm = (categoryId: number) => {
+    setCategoryToDelete(categoryId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
 
     try {
-      console.log('🗑️ Deleting category:', categoryId);
-      const response = await adminService.deleteCategory(categoryId);
-      
-      console.log('✅ Delete response:', response);
-      setSuccess(response.message);
-      
-      // تحديث القائمة
-      fetchCategories(pagination.page);
-      
-    } catch (err: any) {
-      console.error('❌ Error deleting category:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to delete category');
+      await deleteCategoryMutation.mutateAsync(categoryToDelete);
+      setDeleteConfirmOpen(false);
+      setCategoryToDelete(null);
+    } catch (err) {
+      // Error is handled in the mutation
+      setDeleteConfirmOpen(false);
+      setCategoryToDelete(null);
     }
   };
 
-  // 📂 فتح نموذج التعديل
-  const openEditModal = (category: Category) => {
+  // Open edit modal
+  const openEditModal = (category: any) => {
     setSelectedCategory(category);
     setFormData({
       name: category.name,
-      image_url: category.image_url
+      image_url: category.image_url || ''
     });
     setShowEditModal(true);
   };
 
-  // 📂 تغيير الصفحة
+  // Change page
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchCategories(newPage);
+      fetchCategories();
     }
   };
 
-  // 📂 إعادة تعيين النموذج
-  const resetForm = () => {
-    setFormData({ name: '', image_url: '' });
-    setSelectedCategory(null);
+  // Close modals
+  const closeModals = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    resetForm();
   };
+
+  // Get mutation states
+  const isCreating = createCategoryMutation.isPending;
+  const isUpdating = updateCategoryMutation.isPending;
+  const isDeleting = deleteCategoryMutation.isPending;
+  
+  const createError = createCategoryMutation.error;
+  const updateError = updateCategoryMutation.error;
+  const deleteError = deleteCategoryMutation.error;
 
   return (
     <div className="space-y-6">
-      {/* العنوان والأزرار */}
+      {/* Title and buttons */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Categories Management</h1>
@@ -180,7 +161,7 @@ const AdminCategoriesPage: React.FC = () => {
         
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => fetchCategories(pagination.page)}
+            onClick={() => refetchCategories()}
             disabled={loading}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
           >
@@ -198,260 +179,131 @@ const AdminCategoriesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* رسائل النجاح */}
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center">
-            <CheckCircle className="text-green-500 mr-3" size={24} />
-            <div>
-              <h3 className="text-lg font-bold text-green-800">Success</h3>
-              <p className="text-green-600 mt-1">{success}</p>
-            </div>
-          </div>
-        </div>
+      {/* SUCCESS Messages */}
+      {successMessage && (
+        <AlertMessage
+          type="success"
+          title="Success"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
       )}
 
-      {/* رسائل الخطأ */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center">
-            <AlertCircle className="text-red-500 mr-3" size={24} />
-            <div>
-              <h3 className="text-lg font-bold text-red-800">Error</h3>
-              <p className="text-red-600 mt-1">{error}</p>
-              <button
-                onClick={() => setError(null)}
-                className="mt-2 text-sm text-red-700 hover:text-red-900"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ERROR Messages */}
+      {queryError && (
+        <AlertMessage
+          type="error"
+          title="Error"
+          message={queryError.message}
+          onClose={() => {}}
+        />
+      )}
+      
+      {createError && (
+        <AlertMessage
+          type="error"
+          title="Create Error"
+          message={createError.message}
+          onClose={() => createCategoryMutation.reset()}
+        />
+      )}
+      
+      {updateError && (
+        <AlertMessage
+          type="error"
+          title="Update Error"
+          message={updateError.message}
+          onClose={() => updateCategoryMutation.reset()}
+        />
+      )}
+      
+      {deleteError && (
+        <AlertMessage
+          type="error"
+          title="Delete Error"
+          message={deleteError.message}
+          onClose={() => deleteCategoryMutation.reset()}
+        />
       )}
 
-      {/* جدول الفئات */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        {loading && categories.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading categories...</p>
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="p-8 text-center">
-            <Folder className="h-12 w-12 text-gray-400 mx-auto" />
-            <p className="mt-4 text-gray-600">No categories found</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create First Category
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-3 px-6 text-gray-600 font-medium">ID</th>
-                  <th className="text-left py-3 px-6 text-gray-600 font-medium">Name</th>
-                  <th className="text-left py-3 px-6 text-gray-600 font-medium">Image</th>
-                  <th className="text-left py-3 px-6 text-gray-600 font-medium">Created</th>
-                  <th className="text-left py-3 px-6 text-gray-600 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((category) => (
-                  <tr key={category.id} className="border-b hover:bg-gray-50">
-                    <td className="py-4 px-6 font-medium">#{category.id}</td>
-                    <td className="py-4 px-6">
-                      <div className="font-medium">{category.name}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      {category.image_url ? (
-                        <div className="flex items-center">
-                          <ImageIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-500 truncate max-w-xs">
-                            {category.image_url}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">No image</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-gray-500">
-                      {new Date(category.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(category)}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(category.id)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Categories table */}
+      <CategoriesTable
+        categories={categories}
+        loading={loading || isDeleting}
+        onEdit={openEditModal}
+        onDelete={openDeleteConfirm} // Changed to open confirmation modal
+        onPageChange={handlePageChange}
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+      />
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="border-t px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing {categories.length} of {pagination.total} categories
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="px-3 py-1">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages}
-                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Create Category Modal */}
-      {showCreateModal && (
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
             <div className="p-6">
-              <h3 className="text-xl font-bold mb-4">Create New Category</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Electronics"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter a valid image URL or leave empty for default
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateCategory}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create Category
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Category Modal */}
-      {showEditModal && selectedCategory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <h3 className="text-xl font-bold mb-4">
-                Edit Category: {selectedCategory.name}
+              <h3 className="text-xl font-bold mb-4 text-gray-900">
+                Confirm Deletion
               </h3>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this category? This action cannot be undone.
+              </p>
 
-              <div className="flex items-center justify-end space-x-3 mt-6">
+              <div className="flex items-center justify-end space-x-3">
                 <button
                   onClick={() => {
-                    setShowEditModal(false);
-                    resetForm();
+                    setDeleteConfirmOpen(false);
+                    setCategoryToDelete(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleUpdateCategory}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  onClick={handleDeleteCategory}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center disabled:opacity-50"
                 >
-                  Update Category
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Category'
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Create modal */}
+      <CategoryFormModal
+        isOpen={showCreateModal}
+        isEditing={false}
+        formData={formData}
+        onSubmit={handleCreateCategory}
+        onClose={closeModals}
+        onFormChange={setFormData}
+        isLoading={isCreating}
+      />
+
+      {/* Edit modal */}
+      <CategoryFormModal
+        isOpen={showEditModal}
+        isEditing={true}
+        categoryName={selectedCategory?.name}
+        formData={formData}
+        onSubmit={handleUpdateCategory}
+        onClose={closeModals}
+        onFormChange={setFormData}
+        isLoading={isUpdating}
+      />
     </div>
   );
 };

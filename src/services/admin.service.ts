@@ -255,19 +255,16 @@ class AdminService {
   }
 
   // 📂 حذف فئة
-  async deleteCategory(categoryId: number): Promise<ApiResponse<null>> {
-    try {
-      const response = await api.delete(`/admin/categories/${categoryId}`);
-      console.log('✅ Category deleted:', response.data);
-      
-      // ✅ إرجاع الـ response كاملة
-      return response.data;
-      
-    } catch (error) {
-      console.error('❌ Error deleting category:', error);
-      throw error;
-    }
+  async deleteCategory(categoryId: number): Promise<ApiResponse<void>> { // 👈 غيرت من null إلى void
+  try {
+    const response = await api.delete(`/admin/categories/${categoryId}`);
+    console.log('✅ Category deleted:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error deleting category:', error);
+    throw error;
   }
+}
 
   // 📂 الحصول على فئة محددة
   async getCategoryById(categoryId: number): Promise<ApiResponse<Category>> {

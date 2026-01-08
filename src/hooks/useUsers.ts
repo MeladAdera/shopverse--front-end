@@ -1,24 +1,22 @@
 // 📁 src/hooks/useUsers.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
 import adminService from '../services/admin.service';
 import type { AdminUser, ApiResponse, UsersData } from '../types/admin.types';
 import type { UserFiltersUI } from '../types/filters.types';
 import { convertFiltersForServer } from '../types/filters.types';
 
 export const useUsers = () => {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [userToToggle, setUserToToggle] = useState<{id: number, active: boolean, name: string} | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
   const [filters] = useState<UserFiltersUI>({
     search: '',
     role: 'all',
     status: 'all'
   });
-  
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -26,94 +24,91 @@ export const useUsers = () => {
     totalPages: 1
   });
 
-  const fetchUsers = useCallback(async (page = 1, uiFilters?: UserFiltersUI) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const serverFilters = uiFilters ? convertFiltersForServer(uiFilters) : undefined;
+  // Query للمستخدمين
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['users', pagination.page, filters],
+    queryFn: async () => {
+      const serverFilters = convertFiltersForServer(filters);
       const response: ApiResponse<UsersData> = await adminService.getUsers(
-        page, 
+        pagination.page, 
         pagination.limit,
         serverFilters
       );
       
-      setUsers(response.data.users || []);
       setPagination(response.data.pagination);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.limit]);
+      return response.data.users || [];
+    },
+  });
+
+  // Mutation لتغيير الحالة
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, active }: { id: number; active: boolean }) =>
+      adminService.updateUserStatus(id, active),
+    onSuccess: (_, { id, active }) => {
+      // تحديث cache مباشرة
+      queryClient.setQueryData(['users', pagination.page, filters], (old: AdminUser[]) =>
+        old.map(user => user.id === id ? { ...user, active } : user)
+      );
+      
+      const user = data?.find(u => u.id === id);
+      if (user) {
+        setSuccess(
+          active 
+            ? `✅ تم تفعيل حساب ${user.name}`
+            : `🚫 تم إيقاف حساب ${user.name}`
+        );
+        setTimeout(() => setSuccess(null), 5000);
+      }
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.message || err.message || 'فشلت العملية');
+      setTimeout(() => setError(null), 5000);
+    },
+  });
+
+  const fetchUsers = useCallback(async (page = 1) => {
+    setPagination(prev => ({ ...prev, page }));
+    await refetch();
+  }, [refetch]);
 
   const confirmToggleStatus = useCallback((userId: number, active: boolean) => {
-    const user = users.find(u => u.id === userId);
+    const user = data?.find(u => u.id === userId);
     if (!user) return;
 
-    setUserToToggle({
-      id: userId,
-      active: !active,
-      name: user.name
-    });
+    setUserToToggle({ id: userId, active: !active, name: user.name });
     setShowConfirmModal(true);
-  }, [users]);
+  }, [data]);
 
   const handleToggleStatus = useCallback(async () => {
     if (!userToToggle) return;
-
-    try {
-      // Update UI immediately
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userToToggle.id ? { ...user, active: userToToggle.active } : user
-        )
-      );
-
-      await adminService.updateUserStatus(userToToggle.id, userToToggle.active);
-      
-      setSuccess(
-        userToToggle.active 
-          ? `✅ Successfully activated ${userToToggle.name}'s account`
-          : `🚫 Successfully deactivated ${userToToggle.name}'s account`
-      );
-      
-      setTimeout(() => setSuccess(null), 5000);
-      
-    } catch (err: any) {
-      // Revert to previous state
-      fetchUsers(pagination.page, filters);
-      
-      if (err.response?.status === 403) {
-        setError('❌ You cannot deactivate your own account');
-      } else {
-        setError(err.response?.data?.message || err.message || 'Failed to update user status');
-      }
-    } finally {
-      setShowConfirmModal(false);
-      setUserToToggle(null);
-    }
-  }, [userToToggle, fetchUsers, pagination.page, filters]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    
+    await toggleStatusMutation.mutateAsync({
+      id: userToToggle.id,
+      active: userToToggle.active
+    });
+    
+    setShowConfirmModal(false);
+    setUserToToggle(null);
+  }, [userToToggle, toggleStatusMutation]);
 
   return {
-    users,
-    loading,
+    // الحالة
+    users: data || [],
+    loading: isLoading || toggleStatusMutation.isPending,
     error,
     success,
     userToToggle,
     showConfirmModal,
     pagination,
     filters,
+    
+    // الدوال
     fetchUsers,
     confirmToggleStatus,
     handleToggleStatus,
     setShowConfirmModal,
     setUserToToggle,
     setError,
-    setSuccess
+    setSuccess,
   };
 };

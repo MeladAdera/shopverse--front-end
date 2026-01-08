@@ -1,158 +1,260 @@
-// src/hooks/useCart.ts
-import { useState, useCallback, useEffect } from 'react';
+// src/hooks/useCart.ts - الإصدار النهائي المُصحح
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartService } from '../services/cart.service';
-import type { CartResponse, ApiResponse } from '../types/cart';
+import type { CartResponse, ApiResponse, CartItem } from '../types/cart';
 
 export function useCart() {
-  const [cart, setCart] = useState<CartResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  // جلب محتويات السلة
-  const fetchCart = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response: ApiResponse<CartResponse> = await cartService.getCart();
-      if (response.success) {
-        setCart(response.data);
-      } else {
-        setError(response.message);
+  // 1. استعلام السلة مع معالجة الأخطاء
+  const {
+    data: cart,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['cart'],
+    queryFn: async (): Promise<CartResponse> => {
+      try {
+        const response: ApiResponse<CartResponse> = await cartService.getCart();
+        
+        if (!response.success) {
+          throw new Error(response.message || 'فشل تحميل السلة');
+        }
+        
+        return response.data;
+      } catch (error) {
+        console.error('خطأ في استعلام السلة:', error);
+        throw error;
       }
-    } catch (err: any) {
-      setError(err.message || 'فشل في جلب محتويات السلة');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    // إعدادات التخزين المؤقت
+    staleTime: 1000 * 60 * 5, // 5 دقائق
+    gcTime: 1000 * 60 * 10, // 10 دقائق للتخزين
+    retry: 2,
+  });
 
-  // إضافة إلى السلة
-  const addToCart = useCallback(async (productId: number, quantity: number = 1) => {
-    setIsLoading(true);
-    setError(null);
+  // 2. طفرة إضافة منتج للسلة
+  const addToCartMutation = useMutation({
+    mutationFn: ({ productId, quantity }: { productId: number; quantity: number }) =>
+      cartService.addToCart(productId, quantity),
     
-    try {
-      const response = await cartService.addToCart(productId, quantity);
-      if (response.success) {
-        setCart(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, error: response.message };
+    onMutate: async ({ productId, quantity }) => {
+      // إلغاء الاستعلامات الحالية
+      await queryClient.cancelQueries({ queryKey: ['cart'] });
+      
+      // حفظ النسخة القديمة للتراجع
+      const previousCart = queryClient.getQueryData<CartResponse>(['cart']);
+      
+      // تحديث واجهة المستخدم على الفور (Optimistic Update)
+      if (previousCart) {
+        const tempItem: CartItem = {
+          id: Date.now(), // معرف مؤقت
+          product_id: productId,
+          product_name: 'جاري الإضافة...',
+          product_price: '0',
+          product_images: [],
+          product_stock: 0,
+          quantity,
+          item_total: 0,
+          original_price: '0',
+          category: '',
+        };
+        
+        queryClient.setQueryData<CartResponse>(['cart'], {
+          ...previousCart,
+          items_count: previousCart.items_count + quantity,
+          items: [...previousCart.items, tempItem],
+        });
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'فشلت العملية';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // تحديث الكمية
-  const updateCartItem = useCallback(async (itemId: number, quantity: number) => {
-    setIsLoading(true);
-    setError(null);
+      
+      return { previousCart };
+    },
     
-    try {
-      const response = await cartService.updateCartItem(itemId, quantity);
-      if (response.success) {
-        setCart(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, error: response.message };
+    onError: (err, _, context) => {
+      // التراجع في حالة الفشل
+      if (context?.previousCart) {
+        queryClient.setQueryData(['cart'], context.previousCart);
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'فشلت العملية';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // حذف منتج
-  const removeFromCart = useCallback(async (itemId: number) => {
-    setIsLoading(true);
-    setError(null);
+      console.error('خطأ في إضافة المنتج:', err);
+    },
     
-    try {
-      const response = await cartService.removeFromCart(itemId);
+    onSuccess: (response) => {
       if (response.success) {
-        setCart(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, error: response.message };
+        // استبدال البيانات المؤقتة بالحقيقية
+        queryClient.setQueryData(['cart'], response.data);
+        
+        // إظهار رسالة نجاح
+        console.log('تمت الإضافة بنجاح');
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'فشلت العملية';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // تفريغ السلة
-  const clearCart = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    },
     
-    try {
-      const response = await cartService.clearCart();
-      if (response.success) {
-        setCart(null);
-        return { success: true, message: response.data.message };
-      } else {
-        setError(response.message);
-        return { success: false, error: response.message };
+    onSettled: () => {
+      // إعادة تحميل البيانات للتأكد من المزامنة
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
+
+  // 3. طفرة تحديث الكمية
+  const updateCartItemMutation = useMutation({
+    mutationFn: ({ itemId, quantity }: { itemId: number; quantity: number }) =>
+      cartService.updateCartItem(itemId, quantity),
+    
+    onMutate: async ({ itemId, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ['cart'] });
+      const previousCart = queryClient.getQueryData<CartResponse>(['cart']);
+      
+      if (previousCart) {
+        const updatedItems = previousCart.items.map(item => {
+          if (item.id === itemId) {
+            const productPrice = parseFloat(item.product_price) || 0;
+            return { 
+              ...item, 
+              quantity, 
+              item_total: productPrice * quantity 
+            };
+          }
+          return item;
+        });
+        
+        queryClient.setQueryData<CartResponse>(['cart'], {
+          ...previousCart,
+          items: updatedItems,
+        });
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'فشلت العملية';
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      
+      return { previousCart };
+    },
+    
+    onError: (err, _, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(['cart'], context.previousCart);
+      }
+      console.error('خطأ في تحديث الكمية:', err);
+    },
+    
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
 
-  // جلب عدد المنتجات
-  const getCartCount = useCallback(async () => {
-    try {
-      const response = await cartService.getCartCount();
-      return response.data.count;
-    } catch (err) {
-      return 0;
-    }
-  }, []);
+  // 4. طفرة حذف عنصر
+  const removeFromCartMutation = useMutation({
+    mutationFn: (itemId: number) => cartService.removeFromCart(itemId),
+    
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: ['cart'] });
+      const previousCart = queryClient.getQueryData<CartResponse>(['cart']);
+      
+      if (previousCart) {
+        const itemToRemove = previousCart.items.find(item => item.id === itemId);
+        const updatedItems = previousCart.items.filter(item => item.id !== itemId);
+        
+        queryClient.setQueryData<CartResponse>(['cart'], {
+          ...previousCart,
+          items_count: previousCart.items_count - (itemToRemove?.quantity || 0),
+          items: updatedItems,
+        });
+      }
+      
+      return { previousCart };
+    },
+    
+    onError: (err, _, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(['cart'], context.previousCart);
+      }
+      console.error('خطأ في حذف المنتج:', err);
+    },
+    
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
 
-  // تحميل السلة تلقائياً عند تشغيل الـ hook
-  useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+  // 5. طفرة تفريغ السلة
+  const clearCartMutation = useMutation({
+    mutationFn: () => cartService.clearCart(),
+    
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['cart'] });
+      const previousCart = queryClient.getQueryData<CartResponse>(['cart']);
+      
+      queryClient.setQueryData<CartResponse>(['cart'], {
+        id: previousCart?.id || 0,
+        user_id: previousCart?.user_id || 0,
+        items: [],
+        items_count: 0,
+        total_price: 0,
+      });
+      
+      return { previousCart };
+    },
+    
+    onError: (err, _, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(['cart'], context.previousCart);
+      }
+      console.error('خطأ في تفريغ السلة:', err);
+    },
+  });
 
+  // 6. الدوال المساعدة
+  const addToCart = (productId: number, quantity: number = 1) => {
+    return addToCartMutation.mutateAsync({ productId, quantity });
+  };
+
+  const updateCartItem = (itemId: number, quantity: number) => {
+    return updateCartItemMutation.mutateAsync({ itemId, quantity });
+  };
+
+  const removeFromCart = (itemId: number) => {
+    return removeFromCartMutation.mutateAsync(itemId);
+  };
+
+  const clearCart = () => {
+    return clearCartMutation.mutateAsync();
+  };
+
+  // 7. القيم المحسوبة
+  const cartItemsCount = cart?.items_count || 0;
+  const cartTotal = cart?.total_price || 0;
+  const cartItems = cart?.items || [];
+
+  // 8. إرجاع الواجهة
   return {
     // الحالة
     cart,
     isLoading,
-    error,
+    error: error instanceof Error ? error.message : null,
+    isMutating: 
+      addToCartMutation.isPending ||
+      updateCartItemMutation.isPending ||
+      removeFromCartMutation.isPending ||
+      clearCartMutation.isPending,
     
     // الدوال
     addToCart,
     updateCartItem,
     removeFromCart,
     clearCart,
-    getCartCount,
-    refreshCart: fetchCart,
+    refreshCart: refetch,
     
-    // مساعدات
-    cartItemsCount: cart?.items_count || 0,
-    cartTotal: cart?.total_price || 0,
+    // البيانات المحسوبة
+    cartItemsCount,
+    cartTotal,
+    cartItems,
     
-    // إعادة تعيين الخطأ
-    resetError: () => setError(null)
+    // الحالات المنفصلة للتحكم في UI
+    addToCartStatus: {
+      isPending: addToCartMutation.isPending,
+      isError: addToCartMutation.isError,
+      error: addToCartMutation.error,
+    },
+    
+    // إعادة تعيين
+    resetCart: () => {
+      queryClient.resetQueries({ queryKey: ['cart'] });
+    },
   };
 }

@@ -58,7 +58,7 @@ export const useFilteredData = () => {
     fetchByCategory: productHook.fetchByCategory,
     fetchByColor: productHook.fetchByColor,
     fetchBySize: productHook.fetchBySize,
-    setProducts: productHook.setProducts,
+    setProducts: productHook.products,
     
     // من useFilters
     filters,

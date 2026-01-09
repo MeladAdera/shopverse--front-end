@@ -27,6 +27,7 @@ import OrderbyPage from './pages/admin/OrderById';
 import NewArrivals from '@/pages/client/NewArrivals';
 import OrderConfirmationPage from './pages/client/OrderConfirmationPage';
 import { useEffect } from 'react';
+import AdminProductsPage from './pages/admin/ProductsPage';
 
 function App() {
    const location = useLocation();
@@ -143,6 +144,8 @@ const AdminApp = () => {
         <Route path="users/:id" element={<UserDetailsPage />} />
 
 <Route path="orders/:id" element={<OrderbyPage />} />
+<Route path="products" element={<AdminProductsPage />} />
+
 
 
       </Route>

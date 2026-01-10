@@ -47,7 +47,7 @@ export function ReviewCard({
 
     try {
       const reviewsData = await reviewService.getProductReviews(productId);
-      console.log('📊 Reviews fetched:', reviewsData); // 🔥 تحقق من البيانات
+      console.log('📊 Reviews fetched:', reviewsData); 
       setReviews(reviewsData);
     } catch (err: any) {
       console.error('❌ خطأ في جلب التقييمات:', err);

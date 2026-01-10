@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { ShoppingCart, Check, Minus, Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 
 import {
   Breadcrumb,
@@ -265,7 +265,7 @@ const ProductPage: React.FC = () => {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink 
-                href="/shop" 
+                href="/products" 
                 className="text-gray-500 hover:text-black"
               >
                 Shop
@@ -274,7 +274,7 @@ const ProductPage: React.FC = () => {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink 
-                href={`/category/${product.category_id}`}
+                href={`/products?/${product.category_id}`}
                 className="text-gray-500 hover:text-black"
               >
                 {product.category_name}
@@ -296,12 +296,12 @@ const ProductPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
               {/* Left Column - Thumbnail Images */}
-              <div className="flex lg:flex-col order-2 lg:order-1 gap-3 lg:gap-4">
+              <div className="flex lg:flex-col order-2 lg:order-1 gap-6 lg:gap-7">
                 {product.image_urls.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`relative overflow-hidden rounded-lg transition-all w-20 h-20 lg:w-24 lg:h-24 ${
+                    className={`relative overflow-hidden rounded-lg transition-all w-30 h-30 lg:w-30 lg:h-30 ${
                       selectedImage === index 
                         ? "ring-2 ring-black ring-offset-2" 
                         : "hover:ring-1 hover:ring-gray-300"
@@ -321,7 +321,7 @@ const ProductPage: React.FC = () => {
 
               {/* Right Column - Main Image with Navigation */}
               <div className="order-1 lg:order-2 flex-1">
-                <div className="relative h-[400px] lg:h-[400px] overflow-hidden rounded-xl bg-gray-100">
+                <div className="relative  h-[300px] md:h-[350px] lg:h-[400px] xl:h-[550px] overflow-hidden rounded-xl bg-gray-100">
                   <img 
                     src={getImageUrl(product.image_urls[selectedImage])} 
                     alt={product.name}
@@ -572,10 +572,12 @@ const ProductPage: React.FC = () => {
                       </>
                     )}
                     {tab === 'reviews' && (
+                      <Link to={`/product/${productId}/reviews`}>
                       <>
                         <span className="hidden sm:inline">Rating & Reviews</span>
                         <span className="sm:hidden">Reviews</span>
                       </>
+                      </Link>
                     )}
                     {tab === 'faq' && 'FAQS'}
                   </span>

@@ -28,6 +28,9 @@ import NewArrivals from '@/pages/client/NewArrivals';
 import OrderConfirmationPage from './pages/client/OrderConfirmationPage';
 import { useEffect } from 'react';
 import AdminProductsPage from './pages/admin/ProductsPage';
+import CreateProductPage from './pages/admin/CreateProductPage';
+import EditProductPage from './pages/admin/EditProductPage';
+import AdminProductDetailsPage from './pages/admin/ProductDetailsPage';
 
 function App() {
    const location = useLocation();
@@ -145,6 +148,10 @@ const AdminApp = () => {
 
 <Route path="orders/:id" element={<OrderbyPage />} />
 <Route path="products" element={<AdminProductsPage />} />
+        <Route path="products/:id" element={<AdminProductDetailsPage />} />
+
+        <Route path="products/create" element={<CreateProductPage />} />
+        <Route path="products/:id/edit" element={<EditProductPage />} />
 
 
 

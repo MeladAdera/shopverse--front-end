@@ -3,8 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { Package, Plus, RefreshCw } from 'lucide-react';
 import { useProducts } from '../../hooks/useProducts';
 import ProductsTable from '../../components/admin/ProductsTable';
+import { useNavigate } from 'react-router-dom';
 
 const AdminProductsPage: React.FC = () => {
+    const navigate = useNavigate(); // إضافة هذا
+
   const {
     products,
     loading,
@@ -63,10 +66,14 @@ const AdminProductsPage: React.FC = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </button>
+          <button 
+    onClick={() => navigate('/admin/products/create')}
+    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+  >
+    <Plus className="h-4 w-4 mr-2" />
+    Add Product
+  </button>
+
         </div>
       </div>
 
@@ -145,19 +152,19 @@ const AdminProductsPage: React.FC = () => {
 
       {/* Products Table */}
       <ProductsTable
-        products={products}
-        loading={loading}
-        onViewProduct={(product) => {
-          alert(`Viewing: ${product.name}`);
-        }}
-        onEditProduct={(product) => {
-          alert(`Edit: ${product.name}`);
-        }}
-        onDeleteProduct={(product) => handleDeleteClick(product.id)}
-        onPageChange={(page) => fetchProducts(page)}
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-      />
+  products={products}
+  loading={loading}
+  onViewProduct={(product) => {
+    // يمكننا تحديث هذا لاستخدام navigate أيضاً إذا أردنا
+    alert(`Viewing: ${product.name}`);
+    // أو يمكننا استخدام: navigate(`/admin/products/${product.id}`)
+  }}
+  // ⭐ لا نمرر onEditProduct بعد الآن
+  onDeleteProduct={(product) => handleDeleteClick(product.id)}
+  onPageChange={(page) => fetchProducts(page)}
+  currentPage={pagination.page}
+  totalPages={pagination.totalPages}
+/>
 
       {/* Delete Confirmation Modal */}
       {productToDelete && (

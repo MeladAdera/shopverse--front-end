@@ -1,5 +1,6 @@
 // 📁 src/components/admin/ProductsTable.tsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // ⭐ إضافة useNavigate
 import { Edit, Trash2, Eye, Package, Image as ImageIcon } from 'lucide-react';
 import type { Product } from '../../types/products.types';
 
@@ -7,7 +8,7 @@ interface ProductsTableProps {
   products: Product[];
   loading: boolean;
   onViewProduct: (product: Product) => void;
-  onEditProduct: (product: Product) => void;
+  // ⭐ نزيل onEditProduct من الـ props
   onDeleteProduct: (product: Product) => void;
   onPageChange: (page: number) => void;
   currentPage: number;
@@ -17,13 +18,14 @@ interface ProductsTableProps {
 const ProductsTable: React.FC<ProductsTableProps> = ({
   products,
   loading,
-  onViewProduct,
-  onEditProduct,
+  // ⭐ لا نمرر onEditProduct بعد الآن
   onDeleteProduct,
   onPageChange,
   currentPage,
   totalPages,
 }) => {
+  const navigate = useNavigate(); // ⭐ استخدام useNavigate
+
   const formatPrice = (price: number) => {
     return `$${price.toFixed(2)}`;
   };
@@ -32,6 +34,11 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
     if (stock === 0) return 'bg-red-100 text-red-800';
     if (stock < 10) return 'bg-yellow-100 text-yellow-800';
     return 'bg-green-100 text-green-800';
+  };
+
+  // ⭐ دالة جديدة للتعديل باستخدام navigate
+  const handleEditProduct = (product: Product) => {
+    navigate(`/admin/products/${product.id}/edit`);
   };
 
   if (loading && products.length === 0) {
@@ -106,21 +113,25 @@ const ProductsTable: React.FC<ProductsTableProps> = ({
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   <div className="flex space-x-2">
+                   <button
+  onClick={() => navigate(`/admin/products/${product.id}`)}
+  className="text-blue-600 hover:text-blue-900"
+  title="View Details"
+>
+  <Eye className="h-4 w-4" />
+</button>
+                    {/* ⭐ التحديث هنا: استخدام handleEditProduct بدلاً من onEditProduct */}
                     <button
-                      onClick={() => onViewProduct(product)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => onEditProduct(product)}
+                      onClick={() => handleEditProduct(product)}
                       className="text-green-600 hover:text-green-900"
+                      title="Edit Product"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onDeleteProduct(product)}
                       className="text-red-600 hover:text-red-900"
+                      title="Delete Product"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

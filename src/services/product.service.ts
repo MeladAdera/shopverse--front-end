@@ -133,5 +133,6 @@ export const productService = {
       console.error('❌ Error getting top selling:', error);
       throw error;
     }
-  }
+  },
+  
 };

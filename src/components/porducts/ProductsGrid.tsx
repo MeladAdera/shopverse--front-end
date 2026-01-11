@@ -34,31 +34,27 @@ function ProductsGrid() {
   // 🎯 Sorting state
   const [sortOption, setSortOption] = useState<SortOption>('popular');
 
+// 👇 REPLACE both useEffect hooks with this single one:
 useEffect(() => {
-  try {
-    const searchQuery = searchParams.get('search');
-    console.log('🌐 [ProductsGrid] URL Search Param:', searchQuery);
-    console.log('🌐 [ProductsGrid] Current filters.search:', filters.search);
-    
-    // If URL has search AND it's different from current filter
-    if (searchQuery && searchQuery !== filters.search) {
-      console.log('🎯 [ProductsGrid] Setting search filter:', searchQuery);
-      setFilters({ search: searchQuery });
-    }
-    // If URL has NO search AND current filter has search
-    else if (!searchQuery && filters.search) {
-      console.log('🗑️ [ProductsGrid] Clearing search filter');
-      setFilters({ search: '' });
-    }
-    // Otherwise, no change needed
-    else {
-      console.log('⚡ [ProductsGrid] Search state already in sync');
-    }
-  } catch (error) {
-    console.error('❌ [ProductsGrid] Error setting filters:', error);
-    console.error('❌ [ProductsGrid] Error stack:', error.stack);
+  const searchQuery = searchParams.get('search');
+  console.log('🌐 [ProductsGrid] URL Search Param:', searchQuery);
+  console.log('🌐 [ProductsGrid] Current filters.search:', filters.search);
+  
+  // If URL has search AND it's different from current filter
+  if (searchQuery && searchQuery !== filters.search) {
+    console.log('🎯 [ProductsGrid] Setting search filter:', searchQuery);
+    setFilters({ search: searchQuery });
   }
-}, [searchParams])
+  // If URL has NO search AND current filter has search
+  else if (!searchQuery && filters.search) {
+    console.log('🗑️ [ProductsGrid] Clearing search filter');
+    setFilters({ search: '' });
+  }
+  // Otherwise, no change needed
+  else {
+    console.log('⚡ [ProductsGrid] Search state already in sync');
+  }
+}, [searchParams]);
 
   // 🔄 Fetch data based on filters
   useEffect(() => {

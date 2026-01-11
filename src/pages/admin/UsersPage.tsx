@@ -1,6 +1,6 @@
 // 📁 src/pages/admin/UsersPage.tsx
 import React from 'react';
-import { Users, AlertCircle, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 import { useUsers } from '../../hooks/useUsers';
 import UsersTable from '../../components/admin/UsersTable';
@@ -41,14 +41,7 @@ const AdminUsersPage: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => fetchUsers(pagination.page)}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+         
         </div>
       </div>
 

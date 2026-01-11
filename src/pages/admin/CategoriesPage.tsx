@@ -1,6 +1,6 @@
 // 📁 src/pages/admin/CategoriesPage.tsx
 import React, { useEffect, useState } from 'react'; // Add useState
-import { FolderPlus, RefreshCw } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import CategoriesTable from '../../components/admin/CategoriesTable';
 import CategoryFormModal from '../../components/admin/CategoryFormModal';
@@ -21,7 +21,6 @@ const AdminCategoriesPage: React.FC = () => {
     setSelectedCategory,
     setFormData,
     resetForm,
-    refetchCategories,
   } = useCategories();
 
   // Local state for success messages
@@ -160,15 +159,7 @@ const AdminCategoriesPage: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => refetchCategories()}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-          
+       
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"

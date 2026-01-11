@@ -8,32 +8,32 @@ import EmptyCart from "../components/cart/EmptyCart";
 import Subscribe from "../components/ui/Subscribe";
 import Footer from "../components/ui/Footer";
 import { useCart } from "@/hooks/useCart";
+import { toast } from "react-hot-toast";
 
-// 🔧 دالة جديدة صحيحة
+// 🔧 Correct image URL function
 const getFullImageUrl = (imagePath: string | undefined): string => {
   if (!imagePath) return '/placeholder.jpg';
   
-  // إذا كان رابط كامل
+  // If it's already a full URL
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
   
   const BASE_URL = 'http://localhost:5000';
   
-  
-  // الحل 1: إذا كان المسار يحتوي على uploads، حوله إلى public
+  // Solution 1: If path contains uploads, convert to public
   if (imagePath.includes('/uploads/')) {
     const correctedPath = imagePath.replace('/uploads/', '/public/');
-    console.log('🔄 تحويل uploads إلى public:', { original: imagePath, corrected: correctedPath });
+    console.log('🔄 Converting uploads to public:', { original: imagePath, corrected: correctedPath });
     return `${BASE_URL}${correctedPath}`;
   }
   
-  // الحل 2: إذا كان المسار يبدأ بـ /، أضف BASE_URL
+  // Solution 2: If path starts with /, add BASE_URL
   if (imagePath.startsWith('/')) {
     return `${BASE_URL}${imagePath}`;
   }
   
-  // أي حالة أخرى
+  // Any other case
   return `${BASE_URL}/${imagePath}`;
 };
 
@@ -51,19 +51,19 @@ export default function CartPage() {
   const [localLoading, setLocalLoading] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
 
-  // تحويل بيانات API إلى تنسيق مكون CartItemCard
+  // Convert API data to CartItemCard format
   useEffect(() => {
     if (cart?.items) {
-      console.log('🔍 تحقق من الصور:', cart.items[0]);
+      console.log('🔍 Checking images:', cart.items[0]);
       
       const formattedItems = cart.items.map(item => {
         const mainImage = item.product_images?.[0];
         
-        // ⚡ تطبيق التصحيح هنا
+        // ⚡ Apply correction here
         let imageUrl = getFullImageUrl(mainImage);
         
-        // 🔍 اختبر الرابط
-        console.log('🔗 رابط الصورة:', {
+        // 🔍 Test the link
+        console.log('🔗 Image URL:', {
           original: mainImage,
           backendPath: 'backend/public/products/...',
           finalUrl: imageUrl
@@ -74,7 +74,7 @@ export default function CartPage() {
           name: item.product_name,
           price: parseFloat(item.product_price),
           originalPrice: undefined,
-          image: imageUrl, // ⚡ هذا هو الرابط الصحيح
+          image: imageUrl, // ⚡ This is the correct URL
           size: 'Large',
           color: 'Default',
           quantity: item.quantity,
@@ -91,61 +91,117 @@ export default function CartPage() {
     try {
       const result = await updateCartItem(itemId, newQuantity);
       if (result.success) {
-        // تحديث البيانات المحلية
+        // Update local data
         setCartItems(prev => prev.map(item => 
           item.id === itemId ? { ...item, quantity: newQuantity } : item
         ));
+        toast.success('Quantity updated successfully');
+      } else {
+        toast.error('Failed to update quantity');
       }
+    } catch (err) {
+      toast.error('Error updating quantity');
+      console.error(err);
     } finally {
       setLocalLoading(null);
     }
   };
 
   const handleRemoveItem = async (itemId: number) => {
-    if (window.confirm('هل تريد حذف هذا المنتج من السلة؟')) {
+    // Show confirmation toast instead of window.confirm
+    const removeItem = () => {
       setLocalLoading(`remove-${itemId}`);
-      try {
-        const result = await removeFromCart(itemId);
-        if (result.success) {
-          // تحديث البيانات المحلية
-          setCartItems(prev => prev.filter(item => item.id !== itemId));
-        }
-      } finally {
-        setLocalLoading(null);
-      }
-    }
+      removeFromCart(itemId)
+        .then(result => {
+          if (result.success) {
+            // Update local data
+            setCartItems(prev => prev.filter(item => item.id !== itemId));
+            toast.success('Item removed from cart');
+          } else {
+            toast.error('Failed to remove item');
+          }
+        })
+        .catch(err => {
+          toast.error('Error removing item');
+          console.error(err);
+        })
+        .finally(() => {
+          setLocalLoading(null);
+        });
+    };
+
+    toast.custom((t) => (
+      <div className={`${
+        t.visible ? 'animate-enter' : 'animate-leave'
+      } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                Remove Item
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Are you sure you want to remove this item from your cart?
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex border-l border-gray-200">
+          <button
+            onClick={() => {
+              removeItem();
+              toast.dismiss(t.id);
+            }}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none"
+          >
+            Remove
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+    });
   };
 
-  // إذا كان في حالة تحميل
+  // If loading
   if (isLoading && !cart) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل السلة...</p>
+          <p className="text-gray-600">Loading cart...</p>
         </div>
       </div>
     );
   }
 
-  // إذا كان هناك خطأ
+  // If there's an error
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-red-600">
           <p className="mb-4">❌ {error}</p>
           <button 
-            onClick={() => refreshCart()}
-            className="bg-black text-white px-4 py-2 rounded"
+            onClick={() => {
+              refreshCart();
+              toast.loading('Refreshing cart...');
+            }}
+            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition-colors"
           >
-            حاول مرة أخرى
+            Try Again
           </button>
         </div>
       </div>
     );
   }
 
-  // إذا كانت السلة فارغة
+  // If cart is empty
   if (!cart || cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -158,16 +214,16 @@ export default function CartPage() {
     );
   }
 
-  // حسابات الطلب من البيانات الحقيقية
+  // Order calculations from real data
   const subtotal = cart.total_price || 0;
-  const discount = 0; // إذا كان لديك خصومات
-  const deliveryFee = 15; // يمكن أن يكون من API
+  const discount = 0; // If you have discounts
+  const deliveryFee = 15; // Could come from API
   const total = subtotal - discount + deliveryFee;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* العنوان */}
+        {/* Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">YOUR CART</h1>
           <p className="text-gray-600 mt-2">
@@ -175,18 +231,18 @@ export default function CartPage() {
           </p>
         </div>
 
-        {/* المحتوى الرئيسي */}
+        {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* قائمة المنتجات */}
+          {/* Products List */}
           <div className="lg:w-2/3">
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               {cartItems.map((item) => (
                 <div key={item.id} className="relative">
-                  {localLoading === `update-${item.id}` || localLoading === `remove-${item.id}` ? (
+                  {(localLoading === `update-${item.id}` || localLoading === `remove-${item.id}`) && (
                     <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
                     </div>
-                  ) : null}
+                  )}
                   
                   <CartItemCard
                     item={item}
@@ -198,7 +254,7 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* ملخص الطلب */}
+          {/* Order Summary */}
           <div className="lg:w-1/3">
             <OrderSummary
               subtotal={subtotal}

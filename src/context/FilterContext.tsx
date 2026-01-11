@@ -4,13 +4,14 @@ import { createContext, useContext, useState, type ReactNode, useCallback } from
 import type { FilterParams } from '@/services/productApi';
 
 interface FilterState {
-  category: string;          // اسم التصنيف (للعرض)
-  category_id: string;       // 🔥 جديد: ID التصنيف (للتشغيل مع Backend)
+  category: string;
+  category_id: string;
   color: string;
   size: string;
   style: string;
   brand: string;
   gender: string;
+  search: string; // 👈 STEP 1: ADD THIS FIELD
   priceRange: {
     min: number;
     max: number;
@@ -28,12 +29,13 @@ interface FilterContextType {
 
 const defaultFilters: FilterState = {
   category: '',
-  category_id: '', // 🔥 جديد
+  category_id: '',
   color: '',
   size: '',
   style: '',
   brand: '',
   gender: '',
+  search: '', // 👈 STEP 1: INITIALIZE EMPTY
   priceRange: {
     min: 0,
     max: 500
@@ -45,48 +47,59 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [filters, setFiltersState] = useState<FilterState>(defaultFilters);
   
-
   const setFilters = (updates: Partial<FilterState>) => {
+    console.log('🔄 [FilterContext] Setting filters:', updates);
     setFiltersState(prev => ({ ...prev, ...updates }));
   };
 
   const resetFilters = () => {
+    console.log('🗑️ [FilterContext] Resetting all filters');
     setFiltersState(defaultFilters);
   };
 
   const isFilterActive = 
     filters.category !== '' ||
-    filters.category_id !== '' || // 🔥 أضفنا category_id
+    filters.category_id !== '' ||
     filters.color !== '' ||
     filters.size !== '' ||
     filters.style !== '' ||
     filters.brand !== '' ||
     filters.gender !== '' ||
+    filters.search !== '' || // 👈 STEP 1: INCLUDE IN ACTIVE CHECK
     filters.priceRange.min > 0 ||
     filters.priceRange.max < 500;
 
-  const buildQueryParams = (): FilterParams => {
-    const params: FilterParams = {};
-    
-    // 🔥 الأولوية لـ category_id إذا كان موجوداً
-    if (filters.category_id) {
-      params.category_id = filters.category_id;
-    } else if (filters.category) {
-      // دعم للإصدار القديم
-      params.category_id = filters.category_id;
-    }
-    
-    if (filters.color) params.color = filters.color.toLowerCase();
-    if (filters.size) params.size = filters.size;
-    if (filters.style) params.style = filters.style.toLowerCase();
-    if (filters.brand) params.brand = filters.brand;
-    if (filters.gender) params.gender = filters.gender.toLowerCase();
-    if (filters.priceRange.min > 0) params.min_price = filters.priceRange.min;
-    if (filters.priceRange.max < 500) params.max_price = filters.priceRange.max;
-    
-    console.log('🔧 [FilterContext] Built query params:', params);
-    return params;
-  };
+ const buildQueryParams = (): FilterParams => {
+  const params: FilterParams = {};
+  
+  console.log('🔧 [FilterContext] Building query params with filters:', {
+    search: filters.search,
+    hasSearch: !!filters.search,
+    searchTrimmed: filters.search?.trim()
+  });
+  
+  // 👇 STEP 1: ADD SEARCH PARAMETER - MAKE SURE IT'S INCLUDED
+  if (filters.search && filters.search.trim() !== '') {
+    params.search = filters.search.trim();
+    console.log('🔍 [FilterContext] Adding search param:', params.search);
+  }
+  
+  // ... rest of your params ...
+  if (filters.category_id) {
+    params.category_id = filters.category_id;
+  }
+  
+  if (filters.color) params.color = filters.color.toLowerCase();
+  if (filters.size) params.size = filters.size;
+  if (filters.style) params.style = filters.style.toLowerCase();
+  if (filters.brand) params.brand = filters.brand;
+  if (filters.gender) params.gender = filters.gender.toLowerCase();
+  if (filters.priceRange.min > 0) params.min_price = filters.priceRange.min;
+  if (filters.priceRange.max < 500) params.max_price = filters.priceRange.max;
+  
+  console.log('🔧 [FilterContext] Final built params:', params);
+  return params;
+};
 
   const applyFiltersAndFetch = useCallback(async (updates?: Partial<FilterState>) => {
     console.log('🔄 [FilterContext] Applying filters and fetching...');
@@ -97,12 +110,6 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     
     const queryParams = buildQueryParams();
     console.log('📤 Query params for fetch:', queryParams);
-    
-    if (Object.keys(queryParams).length > 0) {
-      console.log('🔍 Would fetch with filters:', queryParams);
-    } else {
-      console.log('📦 Would fetch all products');
-    }
     
   }, [filters]);
 

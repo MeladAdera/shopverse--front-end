@@ -1,18 +1,23 @@
-// 📁 components/products/ProductsGrid.tsx (Updated)
+// 📁 components/products/ProductsGrid.tsx
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom"; // 👈 ADD useSearchParams
 import { Grid, List, ArrowUpDown } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { PaginationWrapper } from "./PaginationWrapper";
 import { useFilteredData } from '@/hooks/useFilteredData';
 import ImageService from '@/lib/imageService';
+import { useFilters } from '@/context/FilterContext'; // 👈 ADD useFilters
 
 // Define sort options type
 type SortOption = 'popular' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a' | 'newest';
 
 function ProductsGrid() {
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams(); // 👈 STEP 2: Get URL search params
   const categoryId = id ? parseInt(id) : undefined;
+  
+  // 🎯 Get setFilters function from context
+  const { setFilters } = useFilters(); // 👈 ADD THIS
   
   // 🎯 Use the integrated hook
   const { 
@@ -29,6 +34,32 @@ function ProductsGrid() {
   // 🎯 Sorting state
   const [sortOption, setSortOption] = useState<SortOption>('popular');
 
+useEffect(() => {
+  try {
+    const searchQuery = searchParams.get('search');
+    console.log('🌐 [ProductsGrid] URL Search Param:', searchQuery);
+    console.log('🌐 [ProductsGrid] Current filters.search:', filters.search);
+    
+    // If URL has search AND it's different from current filter
+    if (searchQuery && searchQuery !== filters.search) {
+      console.log('🎯 [ProductsGrid] Setting search filter:', searchQuery);
+      setFilters({ search: searchQuery });
+    }
+    // If URL has NO search AND current filter has search
+    else if (!searchQuery && filters.search) {
+      console.log('🗑️ [ProductsGrid] Clearing search filter');
+      setFilters({ search: '' });
+    }
+    // Otherwise, no change needed
+    else {
+      console.log('⚡ [ProductsGrid] Search state already in sync');
+    }
+  } catch (error) {
+    console.error('❌ [ProductsGrid] Error setting filters:', error);
+    console.error('❌ [ProductsGrid] Error stack:', error.stack);
+  }
+}, [searchParams])
+
   // 🔄 Fetch data based on filters
   useEffect(() => {
     console.log('🔍 [ProductsGrid] Effect triggered:', { 
@@ -40,7 +71,7 @@ function ProductsGrid() {
     
     // Reset to first page when filters or sorting change
     setCurrentPage(1);
-  }, [categoryId, filters, filteredProducts.length, sortOption]);
+  }, [categoryId, filters, filteredProducts.length, sortOption])
 
   // 📄 Transform images
   const transformedProducts = ImageService.transformProducts(filteredProducts);

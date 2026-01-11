@@ -1,5 +1,5 @@
 // 📁 src/App.tsx
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Header from "./components/ui/header/Header";
 import Homepage from "./routes/Homepage";
@@ -26,7 +26,6 @@ import UserDetailsPage from './pages/admin/UserDetailsPage';
 import OrderbyPage from './pages/admin/OrderById';
 import NewArrivals from '@/pages/client/NewArrivals';
 import OrderConfirmationPage from './pages/client/OrderConfirmationPage';
-import { useEffect } from 'react';
 import AdminProductsPage from './pages/admin/ProductsPage';
 import CreateProductPage from './pages/admin/CreateProductPage';
 import EditProductPage from './pages/admin/EditProductPage';
@@ -36,17 +35,8 @@ import BrandProducts from './pages/BrandProducts';
 import Sale from './pages/Sale';
 
 function App() {
-   const location = useLocation();
   
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const searchQuery = params.get('search');
-    
-    if (searchQuery) {
-      // Fetch products with search query
-      fetchProducts({ search: searchQuery });
-    }
-  }, [location.search]);
+ 
   return (
     <AuthProvider>
       <div className="min-h-screen">
@@ -171,6 +161,4 @@ const AdminApp = () => {
 
 export default App;
 
-function fetchProducts(_arg0: { search: string; }) {
-  throw new Error('Function not implemented.');
-}
+

@@ -21,14 +21,23 @@ const HeroSection: React.FC = () => {
           </div>
           
           {/* Hero Text */}
-          <div className="text-center lg:text-left">
-            <p className="text-lg md:text-2xl lg:text-3xl font-medium text-gray-800 leading-relaxed">
-              Browse through our diverse range of meticulously crafted garments, designed
-            </p>
-            <span className="text-base md:text-xl text-gray-600">
-              to bring out your individuality and cater to your sense of style
-            </span>
-          </div>
+         {/* Hero Text */}
+<div className="text-center lg:text-left">
+  <div className="overflow-hidden">
+    <p className="text-lg md:text-2xl lg:text-3xl font-medium text-gray-800 leading-relaxed
+                  animate-masked-reveal opacity-0">
+      Browse through our diverse range of meticulously crafted garments, designed
+    </p>
+  </div>
+  <div className="overflow-hidden mt-2">
+    <span className="text-base md:text-xl text-gray-600
+                     animate-masked-reveal opacity-0"
+            style={{ animationDelay: '0.4s' }}>
+      to bring out your individuality and cater to your sense of style
+    </span>
+  </div>
+</div>
+
           
           {/* CTA Button */}
           <div className="flex justify-center lg:justify-start">

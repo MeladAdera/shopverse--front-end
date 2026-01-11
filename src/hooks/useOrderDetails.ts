@@ -38,7 +38,7 @@ export const useOrderDetails = (id?: string): UseOrderDetailsReturn => {
     enabled: !!orderId,
   });
 
-  // Mutation لتحديث الحالة
+  // Mutation لتحديث الحالة مع Optimistic Updates
   const updateMutation = useMutation({
     mutationFn: async (newStatus: string) => {
       if (!orderId) throw new Error('رقم الطلب غير صالح');
@@ -49,13 +49,44 @@ export const useOrderDetails = (id?: string): UseOrderDetailsReturn => {
         throw new Error(response.message || 'فشل في تحديث الطلب');
       }
       
-      return response.data;
+      return newStatus;
     },
-    onSuccess: (updatedOrder) => {
-      // تحديث cache
-      queryClient.setQueryData(['order', orderId], updatedOrder);
+    
+    // ⭐⭐⭐ التحديث الفوري أمام المستخدم ⭐⭐⭐
+    onMutate: async (newStatus: string) => {
+      // إلغاء أي استعلامات جارية
+      await queryClient.cancelQueries({ queryKey: ['order', orderId] });
       
-      // تحديث قائمة الطلبات أيضاً
+      // حفظ البيانات القديمة للتراجع عند الخطأ
+      const previousOrder = queryClient.getQueryData(['order', orderId]);
+      
+      // تحديث الكاش فوراً (Optimistic Update)
+      queryClient.setQueryData(['order', orderId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        };
+      });
+      
+      // إرجاع البيانات القديمة للتراجع عند الخطأ
+      return { previousOrder };
+    },
+    
+    // عند الخطأ، نرجع البيانات القديمة
+    onError: (err: any, _newStatus: string, context: any) => {
+      if (context?.previousOrder) {
+        queryClient.setQueryData(['order', orderId], context.previousOrder);
+      }
+      
+      console.error('❌ فشل تحديث حالة الطلب:', err.message);
+    },
+    
+    // عند النجاح، نحدث باقي البيانات
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
@@ -63,7 +94,9 @@ export const useOrderDetails = (id?: string): UseOrderDetailsReturn => {
   const updateOrderStatus = async (newStatus: string) => {
     try {
       await updateMutation.mutateAsync(newStatus);
-    } catch (error) {
+      return Promise.resolve();
+    } catch (error: any) {
+      console.error('❌ فشل تحديث حالة الطلب:', error);
       throw error;
     }
   };

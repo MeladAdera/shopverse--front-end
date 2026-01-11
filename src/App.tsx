@@ -33,6 +33,7 @@ import EditProductPage from './pages/admin/EditProductPage';
 import AdminProductDetailsPage from './pages/admin/ProductDetailsPage';
 import Brands from './pages/Brands';
 import BrandProducts from './pages/BrandProducts';
+import Sale from './pages/Sale';
 
 function App() {
    const location = useLocation();
@@ -77,6 +78,8 @@ const MainApp = () => {
         <Route path="/new-arrivals" element={<NewArrivals />} />
         <Route path="/brands" element={<Brands />} />
                 <Route path="/brands/:brandName" element={<BrandProducts />} />
+                                <Route path="/sale" element={<Sale />} />
+
 
 
 

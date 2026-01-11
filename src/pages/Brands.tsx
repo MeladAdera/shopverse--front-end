@@ -16,6 +16,7 @@ import { productService } from '@/services/product.service';
 import ImageService from '@/lib/imageService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import Typewriter from 'typewriter-effect';
 
 // تعريف نوع العلامة التجارية
 interface BrandInfo {
@@ -191,11 +192,23 @@ function Brands() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 text-center lg:text-left">
               Shop by Brand
             </h1>
-            <p className="text-gray-600 mt-2 text-center lg:text-left">
-              Discover premium collections from top fashion brands
-            </p>
+      
           </div>
         </div>
+              <Typewriter
+    options={{
+      strings: [
+        'Welcome to our brand section .',
+        'Where style meets innovation .',
+        'Fresh products added every day .',
+        'Special discounts just for you! 🎯'
+      ],
+      autoStart: true,
+      loop: true,
+      delay: 50,
+      deleteSpeed: 30,
+    }}
+  />
         
         {/* Search Bar - توسيط على الموبايل */}
         <div className="mt-6 max-w-xl mx-auto lg:mx-0">

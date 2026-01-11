@@ -6,6 +6,8 @@ import ProductCard from "../../components/porducts/ProductCard";
 import { productService } from '@/services/product.service';
 import ImageService from '@/lib/imageService';
 import { Skeleton } from '@/components/ui/skeleton';
+import Typewriter from 'typewriter-effect';
+
 
 function NewArrivals() {
   const navigate = useNavigate();
@@ -81,11 +83,24 @@ function NewArrivals() {
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900">New Arrivals</h1>
               </div>
-              <p className="text-gray-600 text-lg">
-                Discover our latest products. Fresh styles added daily.
-              </p>
+              <div className="text-gray-600 text-lg h-8">
+  <Typewriter
+    options={{
+      strings: [
+        'Welcome to our new arrivals section .',
+        'Where style meets innovation .',
+        'Fresh products added every day .',
+        'Special discounts just for you! 🎯'
+      ],
+      autoStart: true,
+      loop: true,
+      delay: 50,
+      deleteSpeed: 30,
+    }}
+  />
+</div>
             </div>
-            
+
             <div className="flex items-center gap-6 bg-white p-4 rounded-xl shadow-sm border">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{products.length}</div>

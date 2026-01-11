@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { 
   Package, 
   Truck, 
-  RefreshCw, 
   AlertCircle, 
   BarChart3,
   Download
@@ -222,14 +221,7 @@ const AdminOrdersPage: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => fetchOrders(pagination.page, statusFilter, searchQuery)}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+         
           
           <button
             onClick={handleExportOrders}

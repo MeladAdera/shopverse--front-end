@@ -73,7 +73,7 @@ function Header() {
               New Arrivals
             </button>
             <button 
-              onClick={() => navigate('/products')}
+              onClick={() => navigate('/brands')}
               className="text-[16px] lg:text-[18px] hover:text-gray-600 transition-colors px-3 lg:px-4 py-2 font-medium"
             >
               Brands

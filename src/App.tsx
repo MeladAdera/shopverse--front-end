@@ -31,6 +31,8 @@ import AdminProductsPage from './pages/admin/ProductsPage';
 import CreateProductPage from './pages/admin/CreateProductPage';
 import EditProductPage from './pages/admin/EditProductPage';
 import AdminProductDetailsPage from './pages/admin/ProductDetailsPage';
+import Brands from './pages/Brands';
+import BrandProducts from './pages/BrandProducts';
 
 function App() {
    const location = useLocation();
@@ -73,6 +75,10 @@ const MainApp = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} /> 
         <Route path="/new-arrivals" element={<NewArrivals />} />
+        <Route path="/brands" element={<Brands />} />
+                <Route path="/brands/:brandName" element={<BrandProducts />} />
+
+
 
         
         {/* Protected Routes */}

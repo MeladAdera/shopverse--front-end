@@ -1,4 +1,8 @@
-export const API_BASE_URL = 'http://localhost:5000/api';
+import { api } from '@/lib/api-client';
+
+export const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+  'http://localhost:5000/api';
 
 export interface Product {
   id: number;
@@ -54,137 +58,95 @@ export interface FilterParams {
   limit?: number;           // عدد العناصر
 }
 
+function filtersToRequestParams(filters: FilterParams): Record<string, string | number> {
+  const params: Record<string, string | number> = {};
+
+  if (filters.category_id && filters.category_id.trim() !== '') {
+    params.category_id = filters.category_id.trim();
+  } else if (filters.category && filters.category.trim() !== '') {
+    params.category = filters.category.trim();
+  }
+  if (filters.color && filters.color.trim() !== '') {
+    params.color = filters.color.toLowerCase();
+  }
+  if (filters.size && filters.size.trim() !== '') {
+    params.size = filters.size.trim();
+  }
+  if (filters.style && filters.style.trim() !== '') {
+    params.style = filters.style.toLowerCase();
+  }
+  if (filters.brand && filters.brand.trim() !== '') {
+    params.brand = filters.brand.trim();
+  }
+  if (filters.gender && filters.gender.trim() !== '') {
+    params.gender = filters.gender.toLowerCase();
+  }
+  if (filters.season && filters.season.trim() !== '') {
+    params.season = filters.season.trim();
+  }
+  if (filters.material && filters.material.trim() !== '') {
+    params.material = filters.material.trim();
+  }
+  if (filters.min_price != null && filters.min_price > 0) {
+    params.min_price = filters.min_price;
+  }
+  if (filters.max_price != null && filters.max_price > 0) {
+    params.max_price = filters.max_price;
+  }
+  if (filters.search && filters.search.trim() !== '') {
+    params.search = filters.search.trim();
+  }
+  if (filters.page != null && filters.page > 0) {
+    params.page = filters.page;
+  }
+  if (filters.limit != null && filters.limit > 0) {
+    params.limit = filters.limit;
+  }
+
+  return params;
+}
+
 /**
- * جلب المنتجات مع الفلترة
+ * جلب المنتجات مع الفلترة (يستخدم axios حتى يعمل VITE_USE_DEMO_DATA مع المحاكاة)
  */
 export const fetchProductsWithFilters = async (
   filters: FilterParams
 ): Promise<ProductsResponse> => {
   try {
     console.log('🚀 [API] Fetching products with filters:', filters);
-    
-    // بناء query parameters
-    const queryParams = new URLSearchParams();
-    
-    // 🔥 الأسبقية: نرسل category_id إذا كان موجوداً، وإلا category
-    if (filters.category_id && filters.category_id.trim() !== '') {
-      queryParams.append('category_id', filters.category_id);
-      console.log(`🔗 Adding category_id to query: ${filters.category_id}`);
-    } 
-    // 🔥 دعم للإصدار القديم
-    else if (filters.category && filters.category.trim() !== '') {
-      queryParams.append('category', filters.category);
-      console.log(`🔗 Adding category to query: ${filters.category}`);
-    }
-    
-    if (filters.color && filters.color.trim() !== '') {
-      queryParams.append('color', filters.color.toLowerCase());
-      console.log(`🔗 Adding color to query: ${filters.color}`);
-    }
-    
-    if (filters.size && filters.size.trim() !== '') {
-      queryParams.append('size', filters.size);
-      console.log(`🔗 Adding size to query: ${filters.size}`);
-    }
-    
-    if (filters.style && filters.style.trim() !== '') {
-      queryParams.append('style', filters.style.toLowerCase());
-      console.log(`🔗 Adding style to query: ${filters.style}`);
-    }
-    
-    if (filters.brand && filters.brand.trim() !== '') {
-      queryParams.append('brand', filters.brand);
-      console.log(`🔗 Adding brand to query: ${filters.brand}`);
-    }
-    
-    if (filters.gender && filters.gender.trim() !== '') {
-      queryParams.append('gender', filters.gender.toLowerCase());
-      console.log(`🔗 Adding gender to query: ${filters.gender}`);
-    }
-    
-    if (filters.season && filters.season.trim() !== '') {
-      queryParams.append('season', filters.season);
-      console.log(`🔗 Adding season to query: ${filters.season}`);
-    }
-    
-    if (filters.material && filters.material.trim() !== '') {
-      queryParams.append('material', filters.material);
-      console.log(`🔗 Adding material to query: ${filters.material}`);
-    }
-    
-    if (filters.min_price && filters.min_price > 0) {
-      queryParams.append('min_price', filters.min_price.toString());
-      console.log(`🔗 Adding min_price to query: ${filters.min_price}`);
-    }
-    
-    if (filters.max_price && filters.max_price > 0) {
-      queryParams.append('max_price', filters.max_price.toString());
-      console.log(`🔗 Adding max_price to query: ${filters.max_price}`);
-    }
-    
-    if (filters.search && filters.search.trim() !== '') {
-      queryParams.append('search', filters.search);
-      console.log(`🔗 Adding search to query: ${filters.search}`);
-    }
-    
-    // إضافة pagination إذا احتاج
-    if (filters.page && filters.page > 0) {
-      queryParams.append('page', filters.page.toString());
-      console.log(`🔗 Adding page to query: ${filters.page}`);
-    }
-    
-    if (filters.limit && filters.limit > 0) {
-      queryParams.append('limit', filters.limit.toString());
-      console.log(`🔗 Adding limit to query: ${filters.limit}`);
-    }
-    
-    const queryString = queryParams.toString();
-    const url = `${API_BASE_URL}/products${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('🌐 [API] Final Request URL:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ [API] HTTP error details:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data: ProductsResponse = await response.json();
-    
+
+    const params = filtersToRequestParams(filters);
+    const response = await api.get<ProductsResponse>('/products', { params });
+    const data = response.data;
+
     console.log('✅ [API] Response received:', {
       success: data.success,
       productsCount: data.data?.products?.length || 0,
       message: data.message,
-      hasFilters: queryString.length > 0
     });
-    
-    // 🔥 تسجيل تحذير إذا كانت النتائج فارغة مع وجود فلاتر
-    if (queryString.length > 0 && (!data.data?.products || data.data.products.length === 0)) {
+
+    const hasFilters = Object.keys(params).length > 0;
+    if (hasFilters && (!data.data?.products || data.data.products.length === 0)) {
       console.warn('⚠️ [API] No products found with filters:', filters);
     }
-    
-    return data;
-    
+
+    return {
+      success: data.success !== false,
+      message: data.message || '',
+      data: {
+        products: data.data?.products ?? [],
+        pagination: data.data?.pagination,
+      },
+    };
   } catch (error) {
     console.error('❌ [API] Error fetching products:', error);
-    
+
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Network error occurred',
       data: {
-        products: []
-      }
+        products: [],
+      },
     };
   }
 };

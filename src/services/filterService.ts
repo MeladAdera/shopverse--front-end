@@ -1,5 +1,11 @@
 // 📁 services/filterService.ts
-const API_BASE_URL = 'http://localhost:5000/api';
+import { isDemoDataEnabled } from '@/mocks/demoFlag';
+import { DEMO_FILTER_OPTIONS } from '@/mocks/demoSeed';
+import { initDemoState, getFilterCategoriesForDemo } from '@/mocks/demoState';
+
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+  'http://localhost:5000/api';
 
 export interface Category {
   id: number;
@@ -23,6 +29,10 @@ export interface FilterOptions {
 }
 
 export const fetchCategories = async (): Promise<Category[]> => {
+  if (isDemoDataEnabled()) {
+    initDemoState();
+    return getFilterCategoriesForDemo();
+  }
   try {
     const response = await fetch(`${API_BASE_URL}/admin/categories?limit=50`);
     
@@ -49,6 +59,9 @@ export const fetchCategories = async (): Promise<Category[]> => {
 };
 
 export const fetchFilterOptions = async (): Promise<FilterOptions | null> => {
+  if (isDemoDataEnabled()) {
+    return DEMO_FILTER_OPTIONS;
+  }
   try {
     const response = await fetch(`${API_BASE_URL}/products/filter-options`);
     
